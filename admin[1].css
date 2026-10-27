@@ -1,0 +1,139 @@
+/* Territoria · Grafica del pannello amministratore
+   Usa colori e caratteri di stile.css; qui solo i pezzi propri del pannello. */
+
+/* ============ ACCESSO ============ */
+.accesso{max-width:440px;margin:40px auto 0}
+.accesso h1{font-size:clamp(2.2rem,9vw,3rem);font-weight:800;font-variation-settings:"wdth" 82;color:var(--primary)}
+.accesso .intro{margin-bottom:22px}
+.qr{display:grid;place-items:center;margin:8px 0 4px;padding:16px;background:#FFFFFF;border:1px solid var(--line);border-radius:var(--radius-m)}
+.qr img{width:200px;height:200px}
+.segreto{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:1rem;word-break:break-all;background:var(--surface-2);padding:10px 12px;border-radius:10px;user-select:all}
+.codice-input{font-size:1.6rem !important;letter-spacing:.3em;text-align:center;font-variant-numeric:tabular-nums}
+
+/* ============ NAVIGAZIONE ============ */
+.pallino{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--closed);color:#FFFFFF;font-size:.75rem;font-weight:700;line-height:1;vertical-align:1px}
+.icona-con-pallino{position:relative;display:inline-block}
+.icona-con-pallino .pallino{position:absolute;top:-6px;right:-12px}
+
+/* ============ INTESTAZIONI DI PAGINA ============ */
+.capo{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:28px}
+.capo .titolo-pagina{margin-top:0}
+.capo-azioni{display:flex;gap:10px;flex-wrap:wrap}
+.primario{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border:0;border-radius:12px;
+  background:var(--primary);color:var(--on-primary);font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.primario[aria-busy="true"],.bottone[aria-busy="true"]{opacity:.7;cursor:progress}
+.pericolo{color:var(--closed);border-color:color-mix(in srgb,var(--closed) 45%,var(--line))}
+.piccolo{min-height:40px;padding:0 12px;font-size:.95rem}
+.indietro-admin{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-top:14px;font-weight:700;text-decoration:none}
+
+/* ============ ELENCHI ============ */
+.elenco{list-style:none;margin:14px 0 0;padding:0}
+.riga{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.riga strong{display:block;font-size:1.12rem;line-height:1.3}
+.riga .sotto{display:block;color:var(--muted);font-size:.95rem;line-height:1.4;margin-top:2px}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.82rem;font-weight:700;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.badge.verde{background:color-mix(in srgb,var(--open) 16%,transparent);border-color:transparent;color:var(--ink)}
+.badge.giallo{background:var(--accent-soft);border-color:transparent;color:var(--ink)}
+.badge.rosso{background:color-mix(in srgb,var(--closed) 16%,transparent);border-color:transparent;color:var(--ink)}
+.badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.cerca-admin{margin-top:16px}
+.cerca-admin input{width:100%;height:52px;padding:0 14px;font:inherit;font-size:1.05rem;border:2px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink)}
+.vuoto-admin{margin-top:16px;padding:20px;border:1.5px dashed var(--line);border-radius:var(--radius-m);color:var(--muted)}
+
+/* ============ MODULI DI MODIFICA ============ */
+.modifica{max-width:760px}
+.gruppo-campi{margin-top:28px;padding:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m)}
+.gruppo-campi > h2{font-size:1.3rem;font-weight:750;margin-bottom:14px}
+.gruppo-campi > p.nota:first-of-type{margin-top:-6px;margin-bottom:12px}
+.sottotitolo{margin:22px 0 10px;font-family:var(--font-body);font-size:1.05rem;font-weight:700;line-height:1.3}
+.campi{display:grid;gap:16px}
+@media (min-width:640px){.due{grid-template-columns:1fr 1fr}}
+.spunta{display:flex;gap:12px;align-items:flex-start;font-weight:400;cursor:pointer;line-height:1.4}
+.spunta input{flex:none;width:24px;height:24px;margin:1px 0 0;accent-color:var(--primary)}
+.spunta b{display:block}
+.spunta small{display:block;color:var(--muted);font-size:.92rem}
+.spunte{display:grid;gap:12px}
+fieldset.campo{border:0;margin:0;padding:0;min-width:0}
+fieldset.campo legend{padding:0;margin-bottom:8px}
+.orari-griglia{display:grid;gap:10px}
+.orario{display:grid;grid-template-columns:1fr;gap:8px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+@media (min-width:560px){.orario{grid-template-columns:130px 1fr}}
+.orario:last-child{border-bottom:0}
+.orario-fasce{display:grid;gap:8px;padding-left:36px}
+@media (min-width:560px){.orario-fasce{padding-left:0}}
+.fascia{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px}
+.fascia input{width:100%;min-width:0;padding:8px 10px !important;font:inherit;font-size:1rem;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:10px}
+.ripetibile{display:grid;gap:10px}
+.ripetibile-riga{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.ripetibile-riga .campi{gap:8px}
+.togli{min-height:40px;padding:0 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;cursor:pointer}
+.aggiungi{justify-self:start}
+.barra-salva{position:sticky;bottom:calc(70px + env(safe-area-inset-bottom,0px));z-index:15;display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  margin-top:24px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+@media (min-width:820px){.barra-salva{bottom:16px}}
+.barra-salva .esito-invio{flex:1 1 220px}
+.indirizzo-scheda{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9rem;color:var(--muted);word-break:break-all}
+
+/* ============ FOTO ============ */
+.foto-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.foto-scheda{display:grid;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+.foto-scheda img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--surface-2)}
+.foto-scheda input[type=text]{padding:8px 10px;font:inherit;font-size:.92rem;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);width:100%}
+.foto-scheda .spunta{font-size:.92rem}
+.foto-scheda .spunta input{width:20px;height:20px}
+.carica-foto{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.carica-foto input{position:absolute;width:1px;height:1px;opacity:0}
+
+/* ============ RIEPILOGO ============ */
+.periodo{margin-top:16px}
+.periodo .chip{display:inline-flex;align-items:center;text-decoration:none}
+.periodo .chip[aria-current="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:700}
+.tessere{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (min-width:820px){.tessere{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tessera{padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m)}
+.tessera .etichetta{margin:0;color:var(--muted);font-size:.95rem}
+.tessera .numero{margin:4px 0 0;font-family:var(--font-display);font-weight:800;font-size:2.2rem;line-height:1;font-variant-numeric:tabular-nums}
+.tessera .confronto{margin:6px 0 0;font-size:.88rem;color:var(--muted)}
+.pannelli{display:grid;gap:16px;margin-top:16px}
+@media (min-width:820px){.pannelli{grid-template-columns:1fr 1fr}}
+.pannello{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);min-width:0}
+.pannello h2{font-size:1.2rem;font-weight:750;margin-bottom:12px}
+.pannello .nota{margin-top:10px}
+.barre{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;align-items:end;height:130px;padding-top:22px;border-bottom:1px solid var(--line)}
+.barra{position:relative;display:block;width:100%;min-height:2px;background:var(--primary);border-radius:4px 4px 0 0;border:0;padding:0;cursor:default}
+.barra:hover,.barra:focus-visible{background:color-mix(in srgb,var(--primary) 75%,var(--ink))}
+.barra::after{content:attr(data-valore);position:absolute;left:50%;bottom:calc(100% + 4px);transform:translateX(-50%);padding:2px 8px;border-radius:6px;
+  background:var(--ink);color:var(--bg);font-size:.8rem;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s}
+.barra:hover::after,.barra:focus-visible::after{opacity:1}
+.assi{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;margin-top:6px;font-size:.8rem;color:var(--muted);text-align:center}
+.quote{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.quota{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;font-size:1rem}
+.quota-barra{grid-column:1/-1;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.quota-barra span{display:block;height:100%;background:var(--primary);border-radius:4px}
+.quota b{font-variant-numeric:tabular-nums}
+.da-fare{list-style:none;margin:0;padding:0}
+.da-fare li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.da-fare li:last-child{border-bottom:0}
+.da-fare a{font-weight:700}
+
+/* ============ SEGNALAZIONI ============ */
+.segnalazione{padding:16px 0;border-bottom:1px solid var(--line)}
+.segnalazione-testa{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.segnalazione-testo{margin:10px 0 0;white-space:pre-wrap;max-width:62ch}
+.segnalazione-azioni{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.segnalazione textarea{width:100%;min-height:70px;margin-top:10px;padding:10px 12px;font:inherit;font-size:1rem;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)}
+
+/* ============ FINESTRA (resoconto) ============ */
+dialog.finestra{width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:0;border:1px solid var(--line);border-radius:var(--radius-m);background:var(--surface);color:var(--ink)}
+dialog.finestra::backdrop{background:rgba(0,0,0,.45)}
+.finestra-corpo{padding:20px;display:grid;gap:14px}
+.finestra-corpo h2{font-size:1.35rem;font-weight:750}
+.finestra textarea{width:100%;min-height:220px;padding:12px;font:inherit;font-size:1rem;line-height:1.5;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
+.finestra-azioni{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+
+/* ============ ALTRO ============ */
+.menu-altro{list-style:none;margin:16px 0 0;padding:0}
+.menu-altro a,.menu-altro button{display:flex;justify-content:space-between;align-items:center;width:100%;padding:16px 0;border:0;border-bottom:1px solid var(--line);
+  background:none;color:var(--ink);font:inherit;font-weight:700;font-size:1.1rem;text-decoration:none;text-align:left;cursor:pointer}
+.menu-altro small{display:block;font-weight:400;color:var(--muted);font-size:.95rem}
+.menu-altro .esci{color:var(--closed)}

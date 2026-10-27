@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pannello | Territoria</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#1F4A33">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self' https://*.supabase.co data: blob:; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="stile.css">
+<link rel="stylesheet" href="admin.css">
+<script src="config.js" defer></script>
+<script src="admin.js" defer></script>
+</head>
+<body class="admin">
+<a class="salta" href="#app" data-salta>Vai al contenuto</a>
+
+<header class="testata">
+  <div class="contenitore testata-riga">
+    <a class="marchio" href="#/" aria-label="Pannello di Territoria, riepilogo">
+      <span class="marchio-nome">Territoria</span><span class="marchio-luogo">Pannello</span>
+    </a>
+    <nav class="nav-alta" aria-label="Sezioni del pannello" data-solo-collegato hidden>
+      <a href="#/" data-nav="">Riepilogo</a>
+      <a href="#/attivita" data-nav="attivita">Attività</a>
+      <a href="#/bacheca" data-nav="bacheca">Bacheca</a>
+      <a href="#/segnalazioni" data-nav="segnalazioni">Segnalazioni <span class="pallino" data-conta-segnalazioni hidden></span></a>
+      <a href="#/altro" data-nav="altro">Altro</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app" class="contenitore" tabindex="-1">
+  <p class="caricamento">Caricamento…</p>
+  <noscript><p class="nota">Per usare il pannello serve JavaScript attivo nel browser.</p></noscript>
+</main>
+
+<nav class="nav-bassa" aria-label="Sezioni del pannello" data-solo-collegato hidden>
+  <a href="#/" data-nav=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Riepilogo</a>
+  <a href="#/attivita" data-nav="attivita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16l-1.5-5h-13zM5 9v11h14V9M9.5 20v-6h5v6"/></svg>Attività</a>
+  <a href="#/bacheca" data-nav="bacheca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h2l6 4V5L6 9H4a1 1 0 0 0-1 1zM16 9a3.5 3.5 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Bacheca</a>
+  <a href="#/segnalazioni" data-nav="segnalazioni"><span class="icona-con-pallino"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 13h4l2 3h4l2-3h4M4 13l2-8h12l2 8v6H4z"/></svg><span class="pallino" data-conta-segnalazioni hidden></span></span>Segnalazioni</a>
+  <a href="#/altro" data-nav="altro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>Altro</a>
+</nav>
+
+<div class="avviso-flottante" role="status" aria-live="polite" data-toast></div>
+</body>
+</html>
