@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sacrofano | Territoria</title>
+<meta name="description" content="Botteghe, produttori, servizi, eventi e avvisi di Sacrofano in un posto solo.">
+<meta name="theme-color" content="#1F4A33">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self' https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="stile.css">
+<script src="config.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+<a class="salta" href="#contenuto" data-salta>Vai al contenuto</a>
+
+<header class="testata">
+  <div class="contenitore testata-riga">
+    <a class="marchio" href="#/" aria-label="Territoria Sacrofano, pagina iniziale">
+      <span class="marchio-nome">Territoria</span><span class="marchio-luogo">Sacrofano</span>
+    </a>
+    <nav class="nav-alta" aria-label="Sezioni principali">
+      <a href="#/" data-nav="">Inizio</a>
+      <a href="#/attivita" data-nav="attivita">Attività</a>
+      <a href="#/bacheca" data-nav="bacheca">Bacheca</a>
+      <a href="#/servizi" data-nav="servizi">Servizi utili</a>
+      <a href="#/info" data-nav="info">Info</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenuto" class="contenitore" tabindex="-1">
+  <section class="hero">
+    <h1 class="hero-titolo">Sacrofano</h1>
+    <p class="hero-sotto">Botteghe, produttori e servizi del paese, in un posto solo.</p>
+    <p class="caricamento">Caricamento…</p>
+    <noscript><p class="nota">Per usare il sito serve JavaScript attivo nel browser.</p></noscript>
+  </section>
+</main>
+
+<footer class="contenitore piede">
+  <p>Territoria è un progetto privato e indipendente. Non è il sito del Comune di Sacrofano e non lo rappresenta: per atti e comunicazioni ufficiali consulta il <a href="https://www.comune.sacrofano.rm.it" target="_blank" rel="noopener">sito del Comune</a>.</p>
+  <p data-aggiornato></p>
+</footer>
+
+<nav class="nav-bassa" aria-label="Sezioni principali">
+  <a href="#/" data-nav=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Inizio</a>
+  <a href="#/attivita" data-nav="attivita"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h16l-1.5-5h-13zM5 9v11h14V9M9.5 20v-6h5v6"/></svg>Attività</a>
+  <a href="#/bacheca" data-nav="bacheca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h2l6 4V5L6 9H4a1 1 0 0 0-1 1zM16 9a3.5 3.5 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg>Bacheca</a>
+  <a href="#/servizi" data-nav="servizi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg>Servizi</a>
+  <a href="#/info" data-nav="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Info</a>
+</nav>
+
+<div class="avviso-flottante" role="status" aria-live="polite" data-toast></div>
+</body>
+</html>
