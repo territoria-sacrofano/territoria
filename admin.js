@@ -456,7 +456,7 @@ function leggiHash() {
 async function mostra() {
   const { parti, q } = leggiHash();
   const r = parti[0] || "";
-  const sezioni = { "": "", attivita: "attivita", bacheca: "bacheca", segnalazioni: "segnalazioni", altro: "altro", servizi: "altro", categorie: "altro", etichette: "altro", esporta: "altro" };
+  const sezioni = { "": "", attivita: "attivita", bacheca: "bacheca", segnalazioni: "segnalazioni", altro: "altro", servizi: "altro", categorie: "altro", etichette: "altro", esporta: "altro", sicurezza: "altro" };
   const sez = sezioni[r] ?? "";
   document.querySelectorAll("[data-nav]").forEach(a => {
     if (a.dataset.nav === sez) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -477,6 +477,7 @@ async function mostra() {
     else if (r === "etichette" && parti[1]) await paginaModificaEtichetta(parti[1]);
     else if (r === "categorie") await paginaCategorie();
     else if (r === "esporta") await paginaEsporta();
+    else if (r === "sicurezza") await paginaSicurezza();
     else if (r === "altro") paginaAltro();
     else app.innerHTML = `<h1 class="titolo-pagina" tabindex="-1">Pagina non trovata</h1><p><a class="bottone" href="#/">Torna al riepilogo</a></p>`;
     document.title = (app.querySelector("h1")?.textContent || "Pannello") + " | Territoria";
@@ -523,13 +524,16 @@ async function paginaRiepilogo(q) {
   const giorni = [7, 30, 90].includes(Number(q.get("giorni"))) ? Number(q.get("giorni")) : 30;
   const al = oggiISO(), dal = aggiungiGiorni(al, -(giorni - 1));
   const alPrima = aggiungiGiorni(dal, -1), dalPrima = aggiungiGiorni(alPrima, -(giorni - 1));
-  const [r, rp, stato, att, ann] = await Promise.all([
+  const [r, rp, stato, att, ann, ctrl] = await Promise.all([
     rpc("riepilogo_statistiche", { dal, al }),
     rpc("riepilogo_statistiche", { dal: dalPrima, al: alPrima }),
     rpc("stato_sistema"),
     leggi("attivita?select=id,nome,stato,esempio"),
-    leggi(`annunci?select=id&pubblicato=is.true&scadenza=gte.${al}`)
+    leggi(`annunci?select=id&pubblicato=is.true&scadenza=gte.${al}`),
+    leggi("impostazioni?chiave=eq.ultimo_controllo&select=valore")
   ]);
+  const ultimoCtrl = ctrl[0] && ctrl[0].valore;
+  const giorniCtrl = ultimoCtrl ? Math.floor((Date.now() - new Date(ultimoCtrl.quando).getTime()) / 86400000) : null;
   const nomeDi = id => (att.find(a => a.id === id) || {}).nome || id;
   const visite = Number(r.eventi.visita || 0), visitePrima = Number(rp.eventi.visita || 0);
   const contatti = somma(r.eventi, CONTATTI), contattiPrima = somma(rp.eventi, CONTATTI);
@@ -566,6 +570,7 @@ async function paginaRiepilogo(q) {
         <li><span>Segnalazioni da gestire</span>${stato.segnalazioni_nuove ? `<a href="#/segnalazioni">${numero(stato.segnalazioni_nuove)}</a>` : "<span>nessuna</span>"}</li>
         <li><span>Schede ferme da più di 90 giorni</span>${stato.schede_ferme ? `<a href="#/attivita?filtro=ferme">${numero(stato.schede_ferme)}</a>` : "<span>nessuna</span>"}</li>
         <li><span>Ultima copia di sicurezza</span>${giorniCopia === null ? `<a href="#/esporta">mai fatta</a>` : giorniCopia > 30 ? `<a href="#/esporta">${giorniCopia} giorni fa</a>` : `<span>${giorniCopia === 0 ? "oggi" : giorniCopia + " giorni fa"}</span>`}</li>
+        <li><span>Controllo di sicurezza</span>${giorniCtrl === null ? `<a href="#/sicurezza">mai fatto</a>` : (giorniCtrl > 30 || ultimoCtrl.esito !== "tutto superato") ? `<a href="#/sicurezza">${giorniCtrl === 0 ? "oggi" : giorniCtrl + " giorni fa"}${ultimoCtrl.esito !== "tutto superato" ? ", da rivedere" : ""}</a>` : `<span>${giorniCtrl === 0 ? "oggi" : giorniCtrl + " giorni fa"}, superato</span>`}</li>
         <li><span>Spazio usato nel database</span><span>${mb.toFixed(1).replace(".", ",")} MB di 500 MB</span></li>
       </ul>
     </section>
@@ -1625,6 +1630,124 @@ async function paginaEsporta() {
 }
 
 /* =====================================================================
+   CONTROLLO DI SICUREZZA
+   Prova dal tuo browser, come farebbe un estraneo con la sola chiave
+   pubblica, tutto quello che deve essere bloccato.
+   ===================================================================== */
+const PNG_PROVA = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+async function daEstraneo(percorso, opz) {
+  opz = opz || {};
+  const h = Object.assign({ apikey: KEY }, opz.headers || {});
+  if (/^eyJ/.test(KEY)) h.Authorization = "Bearer " + KEY;
+  try {
+    const r = await fetch(BASE + percorso, { method: opz.method || "GET", headers: h, body: opz.body });
+    let dati = null; try { dati = await r.json(); } catch (e) { /* niente */ }
+    return { stato: r.status, dati };
+  } catch (e) {
+    return { stato: 0, dati: null };
+  }
+}
+const bloccato = r => r.stato === 401 || r.stato === 403;
+const json = d => ({ headers: { "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(d) });
+
+const CONTROLLI = [
+  { nome: "Il sito pubblico legge le informazioni", base: true,
+    aiuto: "La chiave in config.js non funziona: gli altri controlli non sono affidabili.",
+    prova: async () => { const r = await daEstraneo("/rest/v1/categorie?select=id&limit=1"); return r.stato === 200 && Array.isArray(r.dati) && r.dati.length > 0; } },
+  { nome: "Un estraneo non vede le schede in bozza o nascoste",
+    prova: async () => { const r = await daEstraneo("/rest/v1/attivita?select=id&stato=neq.pubblicata"); return r.stato === 200 && Array.isArray(r.dati) && r.dati.length === 0; } },
+  { nome: "Non può modificare le schede",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/attivita?id=eq.controllo-inesistente", Object.assign({ method: "PATCH" }, json({ nome: "Prova" })))) },
+  { nome: "Non può creare schede",
+    aiuto: "Da sistemare subito. In Supabase, Table Editor, attivita, cancella la riga \"controllo-sicurezza\".",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/attivita", Object.assign({ method: "POST" }, json({ id: "controllo-sicurezza", nome: "Controllo di sicurezza", categoria: (CATEGORIE[0] || {}).id || "cibo-km0", stato: "bozza" })))) },
+  { nome: "Non può pubblicare annunci in bacheca",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/annunci", Object.assign({ method: "POST" }, json({ tipo: "evento", titolo: "Controllo", testo: "Controllo di sicurezza", inizio: oggiISO(), scadenza: oggiISO(), pubblicato: false })))) },
+  { nome: "Non può cancellare annunci",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/annunci?id=eq.00000000-0000-0000-0000-000000000000", { method: "DELETE" })) },
+  { nome: "Non vede i consensi firmati",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/consensi?select=attivita_id&limit=1")) },
+  { nome: "Non vede le segnalazioni né i contatti di chi le manda",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/segnalazioni?select=id&limit=1")) },
+  { nome: "Non vede le statistiche",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/statistiche?select=giorno&limit=1")) },
+  { nome: "Non può scrivere numeri a piacere nelle statistiche",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/statistiche", Object.assign({ method: "POST" }, json({ giorno: oggiISO(), ora: 0, evento: "visita", conteggio: 99999 })))) },
+  { nome: "Non vede le impostazioni del pannello",
+    prova: async () => bloccato(await daEstraneo("/rest/v1/impostazioni?select=chiave&limit=1")) },
+  { nome: "Non può usare le funzioni del pannello",
+    prova: async () => { const r = await daEstraneo("/rest/v1/rpc/stato_sistema", Object.assign({ method: "POST" }, json({}))); return bloccato(r) || r.stato === 404; } },
+  { nome: "La lista degli amministratori non è raggiungibile",
+    prova: async () => { const r = await daEstraneo("/rest/v1/amministratori?select=user_id"); return r.stato !== 0 && r.stato !== 200; } },
+  { nome: "Non può caricare foto nell'archivio",
+    aiuto: "Da sistemare subito. In Supabase, Storage, foto, cancella il file \"_controllo-sicurezza.png\".",
+    prova: async () => {
+      const bin = Uint8Array.from(atob(PNG_PROVA), c => c.charCodeAt(0));
+      const r = await daEstraneo("/storage/v1/object/foto/_controllo-sicurezza.png", { method: "POST", headers: { "Content-Type": "image/png", "x-upsert": "false" }, body: new Blob([bin], { type: "image/png" }) });
+      return r.stato !== 0 && r.stato !== 200 && r.stato !== 201;
+    } },
+  { nome: "Nessuno può crearsi un account",
+    aiuto: "Come sistemarlo: in Supabase, Authentication, impostazioni di accesso, disattiva \"Allow new users to sign up\".",
+    prova: async () => { const r = await daEstraneo("/auth/v1/settings"); return r.stato === 200 && r.dati && r.dati.disable_signup === true; } },
+  { nome: "Il tuo accesso usa password e codice dell'app", base: true,
+    prova: async () => { const io = await rpc("chi_sono"); return !!(io && io.amministratore && io.livello === "aal2"); } }
+];
+
+async function paginaSicurezza() {
+  const precedente = await leggi("impostazioni?chiave=eq.ultimo_controllo&select=valore");
+  const ultimo = precedente[0] && precedente[0].valore;
+  app.innerHTML = `
+  <a class="indietro-admin" href="#/altro">‹ Altro</a>
+  <h1 class="titolo-pagina" tabindex="-1">Controllo di sicurezza</h1>
+  <p class="intro">Il pannello prova, come farebbe un estraneo con la sola chiave pubblica del sito, tutto quello che deve essere bloccato. Non modifica nessun dato. Ripetilo una volta al mese e dopo ogni aggiornamento.</p>
+  <p class="nota" id="ultimo-controllo">Ultimo controllo: <b>${ultimo ? `${esc(quando(ultimo.quando))}, ${esc(ultimo.esito)}` : "mai fatto"}</b>.</p>
+  <p><button type="button" class="primario" id="avvia-controllo">Avvia il controllo</button></p>
+  <p class="esito-invio" id="esito-controllo" role="status" aria-live="polite"></p>
+  <ul class="controlli" id="controlli">${CONTROLLI.map((c, i) => `<li class="controllo" data-i="${i}">
+    <span class="segno" aria-hidden="true">·</span>
+    <span><strong>${esc(c.nome)}</strong><span class="sotto" data-esito>Da provare</span>${c.aiuto ? `<span class="sotto aiuto" hidden>${esc(c.aiuto)}</span>` : ""}</span>
+  </li>`).join("")}</ul>`;
+
+  document.getElementById("avvia-controllo").addEventListener("click", async e => {
+    const b = e.currentTarget, esito = document.getElementById("esito-controllo");
+    b.setAttribute("aria-busy", "true"); b.textContent = "Controllo in corso…";
+    esito.className = "esito-invio"; esito.textContent = "";
+    let superati = 0, falliti = 0, nonVerificati = 0, baseOk = true;
+    for (let i = 0; i < CONTROLLI.length; i++) {
+      const c = CONTROLLI[i];
+      const riga = document.querySelector(`.controllo[data-i="${i}"]`);
+      riga.querySelector("[data-esito]").textContent = "Provo…";
+      let ok = null;
+      try { ok = await c.prova(); } catch (err) {
+        if (err instanceof SessioneScaduta) return schermataAccesso("La sessione è scaduta. Accedi di nuovo.");
+        ok = null;
+      }
+      if (i === 0 && !ok) baseOk = false;
+      if (ok === true) superati++; else if (ok === false) falliti++; else nonVerificati++;
+      riga.classList.remove("ok", "ko", "boh");
+      riga.classList.add(ok === true ? "ok" : ok === false ? "ko" : "boh");
+      riga.querySelector(".segno").textContent = ok === true ? "✓" : ok === false ? "✗" : "?";
+      riga.querySelector("[data-esito]").textContent = ok === true ? (c.base ? "Confermato" : "Bloccato, come deve essere") : ok === false ? "ATTENZIONE: non bloccato" : "Non verificabile (connessione?)";
+      const aiuto = riga.querySelector(".aiuto"); if (aiuto) aiuto.hidden = ok !== false;
+    }
+    b.removeAttribute("aria-busy"); b.textContent = "Ripeti il controllo";
+    if (!baseOk) {
+      esito.className = "esito-invio ko"; esito.textContent = "Il sito non riesce a leggere i dati con la chiave pubblica: controlla config.js, poi ripeti.";
+      return;
+    }
+    const tutto = falliti === 0 && nonVerificati === 0;
+    esito.className = "esito-invio " + (tutto ? "ok" : "ko");
+    esito.textContent = tutto ? `Tutti i ${superati} controlli superati.` : `${superati} superati, ${falliti} da sistemare, ${nonVerificati} non verificabili. Mandami uno screenshot.`;
+    try {
+      const valore = { quando: new Date().toISOString(), esito: tutto ? "tutto superato" : `${falliti + nonVerificati} da rivedere` };
+      await salvaOSostituisci("impostazioni", "chiave", { chiave: "ultimo_controllo", valore });
+      document.getElementById("ultimo-controllo").innerHTML = `Ultimo controllo: <b>${esc(quando(valore.quando))}, ${esc(valore.esito)}</b>.`;
+    } catch (err) { /* non è grave */ }
+  });
+}
+
+/* =====================================================================
    ALTRO
    ===================================================================== */
 function paginaAltro() {
@@ -1634,6 +1757,7 @@ function paginaAltro() {
     <li><a href="#/servizi"><span>Servizi utili<small>Link a Comune, ASL, trasporti, emergenze</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="#/categorie"><span>Categorie e caratteristiche<small>Come sono divise le attività</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="#/esporta"><span>Copia di sicurezza<small>Da scaricare una volta al mese</small></span><span aria-hidden="true">›</span></a></li>
+    <li><a href="#/sicurezza"><span>Controllo di sicurezza<small>Prova che nessun estraneo possa modificare o leggere dati riservati</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="${esc(SITO)}" target="_blank" rel="noopener"><span>Apri il sito<small>Come lo vedono tutti</small></span><span aria-hidden="true">↗</span></a></li>
     <li><button type="button" id="esci"><span class="esci">Esci dal pannello<small>${esc(emailUtente())} · accesso con codice attivo</small></span></button></li>
   </ul>`;

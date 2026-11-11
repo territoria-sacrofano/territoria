@@ -137,3 +137,14 @@ dialog.finestra::backdrop{background:rgba(0,0,0,.45)}
   background:none;color:var(--ink);font:inherit;font-weight:700;font-size:1.1rem;text-decoration:none;text-align:left;cursor:pointer}
 .menu-altro small{display:block;font-weight:400;color:var(--muted);font-size:.95rem}
 .menu-altro .esci{color:var(--closed)}
+
+/* ============ CONTROLLO DI SICUREZZA ============ */
+.controlli{list-style:none;margin:18px 0 0;padding:0}
+.controllo{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.controllo strong{display:block;line-height:1.35}
+.controllo .sotto{display:block;color:var(--muted);font-size:.95rem;margin-top:2px}
+.controllo .segno{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2);font-weight:700}
+.controllo.ok .segno{background:color-mix(in srgb,var(--open) 22%,transparent);color:var(--open)}
+.controllo.ko .segno{background:color-mix(in srgb,var(--closed) 22%,transparent);color:var(--closed)}
+.controllo.ko [data-esito]{color:var(--closed);font-weight:700}
+.controllo.boh .segno{background:var(--accent-soft)}
