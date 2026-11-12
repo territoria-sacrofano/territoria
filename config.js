@@ -1,7 +1,7 @@
 /* =====================================================================
    TERRITORIA SACROFANO · Impostazioni del sito
 
-   Qui vanno solo due valori, presi da Supabase:
+   I primi due valori vengono da Supabase:
    Settings → API Keys (oppure il pulsante "Connect" in alto).
 
    - supabaseUrl: il "Project URL", tipo https://abcdefgh.supabase.co
@@ -16,5 +16,9 @@ window.TERRITORIA = {
   supabaseKey: "sb_publishable_y9zxI9_8c-jWkOhlSy3_ZQ_k1Z7mz3q",
 
   comune: "sacrofano",
-  nomeComune: "Sacrofano"
+  nomeComune: "Sacrofano",
+
+  // Chi risponde del sito: compare nella pagina "Privacy e note legali"
+  titolare: "Boris Kim Kekulawala Cutipa",
+  emailContatto: "territoria.sacrofano@gmail.com"
 };

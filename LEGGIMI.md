@@ -5,9 +5,10 @@
 | `index.html` | La struttura della pagina |
 | `stile.css` | Colori, caratteri e impaginazione |
 | `app.js` | Il funzionamento: legge schede, annunci e servizi dal database |
-| `config.js` | Indirizzo del database e chiave pubblica: **l'unico file da compilare** |
+| `config.js` | Indirizzo del database, chiave pubblica, titolare ed email di contatto: **l'unico file da compilare** |
 | `favicon.svg` | L'icona nella scheda del browser |
 | `admin.html`, `admin.css`, `admin.js` | Il pannello amministratore |
+| `font/` | I caratteri del sito (Atkinson Hyperlegible e Bricolage Grotesque, licenza SIL OFL 1.1), così il sito non chiede nulla a Google |
 
 ## I contenuti non stanno qui
 Schede, annunci, servizi e segnalazioni si gestiscono dal pannello: `admin.html` (per esempio https://territoria-sacrofano.github.io/territoria/admin.html). Questi file si toccano solo per cambiare grafica o funzioni.
@@ -16,6 +17,11 @@ Schede, annunci, servizi e segnalazioni si gestiscono dal pannello: `admin.html`
 - **QR in vetrina**: `https://INDIRIZZO-DEL-SITO/?qr=ID-SCHEDA#/a/ID-SCHEDA`
   Esempio: `?qr=lapino-miele#/a/lapino-miele`. Il pannello dati saprà quale vetrina porta visite.
 - **Link da mandare su WhatsApp**: aggiungi `?da=whatsapp` prima del `#`.
+
+## Privacy
+- L'informativa è la pagina `#/privacy` (link nel piè di pagina). Il testo sta in `app.js`, nella funzione `paginaPrivacy`; nome ed email arrivano da `config.js`.
+- Se cambi il modo in cui il sito tratta i dati (un nuovo fornitore, un nuovo modulo, statistiche diverse), aggiorna il testo e la data `PRIVACY_AGGIORNATA`.
+- Le segnalazioni gestite si cancellano da sole 12 mesi dopo la gestione, ogni volta che entri nel pannello.
 
 ## Sicurezza
 - In `config.js` va solo la chiave **Publishable** (`sb_publishable_...`). Mai la chiave Secret.

@@ -562,6 +562,7 @@ function paginaInfo(q) {
           <input name="contatto" maxlength="200" autocomplete="off">
         </label>
         <div class="trappola" aria-hidden="true"><label>Lascia vuoto questo campo<input name="sito_web" tabindex="-1" autocomplete="off"></label></div>
+        <p class="nota">Useremo il messaggio, e il contatto se lo lasci, solo per gestire la segnalazione. <a href="#/privacy">Informativa privacy</a>.</p>
         <button type="submit" class="invia">Invia la segnalazione</button>
         <p class="esito-invio" id="seg-esito" role="status" aria-live="polite"></p>
       </form>
@@ -572,8 +573,93 @@ function paginaInfo(q) {
     <h2 id="h-priv">Privacy</h2>
     <div class="testo">
       <p>Il sito non usa cookie e non ti chiede di registrarti. Conta in forma anonima le visite e i clic sui pulsanti, per capire cosa è utile: non sappiamo chi sei.</p>
-      <p>L'informativa completa sarà pubblicata prima dell'apertura del sito.</p>
+      <p><a href="#/privacy">Leggi l'informativa completa e le note legali</a>.</p>
     </div>
+  </section>`;
+}
+
+/* =====================================================================
+   PRIVACY E NOTE LEGALI
+   Titolare ed email arrivano da config.js. Se cambia qualcosa nel modo
+   in cui il sito tratta i dati, aggiorna questo testo e la data.
+   ===================================================================== */
+const PRIVACY_AGGIORNATA = "12 novembre 2026";
+function paginaPrivacy() {
+  const titolare = esc(CFG.titolare || "Boris Kim Kekulawala Cutipa");
+  const email = esc(CFG.emailContatto || "territoria.sacrofano@gmail.com");
+  const mail = `<a href="mailto:${email}">${email}</a>`;
+  return `<h1 class="titolo-pagina" tabindex="-1">Privacy e note legali</h1>
+  <p class="intro">Informativa ai sensi degli articoli 13 e 14 del Regolamento UE 2016/679 (GDPR). Ultimo aggiornamento: ${PRIVACY_AGGIORNATA}.</p>
+
+  <div class="riquadro testo">
+    <h2 class="titoletto">In breve</h2>
+    <ul class="passi">
+      <li>Il sito non usa cookie e non ti chiede di registrarti.</li>
+      <li>Non sappiamo chi sei: le visite si contano in forma anonima.</li>
+      <li>A parte i registri tecnici di sicurezza dei fornitori, trattiamo dati personali solo se ce li mandi tu con il modulo di segnalazione, o se un'attività firma il consenso per la propria scheda.</li>
+      <li>Non vendiamo dati e non li usiamo per pubblicità.</li>
+    </ul>
+  </div>
+
+  <section class="sezione testo" aria-labelledby="h-p-titolare">
+    <h2 id="h-p-titolare">Chi è il titolare</h2>
+    <p>Il titolare del trattamento è <strong>${titolare}</strong>, promotore di Territoria ${esc(CFG.nomeComune || "Sacrofano")}. Per qualsiasi domanda o richiesta sui tuoi dati scrivi a ${mail}.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-visita">
+    <h2 id="h-p-visita">Quando visiti il sito</h2>
+    <p><strong>Niente cookie e niente tracciamento.</strong> Il sito non usa cookie, non crea profili e non contiene strumenti pubblicitari o di analisi di altre aziende. Anche i caratteri tipografici sono ospitati qui: il tuo browser non contatta Google o altri servizi per mostrarli.</p>
+    <p><strong>Statistiche anonime.</strong> Contiamo quante volte succede qualcosa: una visita, l'apertura di una scheda, un clic su Chiama o Indicazioni. Per ogni conteggio salviamo solo il giorno, l'ora, la scheda interessata e una provenienza generica (per esempio QR code o WhatsApp). Quando una ricerca non trova risultati salviamo il testo cercato, per capire cosa manca in paese. Non salviamo indirizzi IP né altri dati che permettano di riconoscerti.</p>
+    <p><strong>Registri tecnici dei fornitori.</strong> Come per ogni sito, le richieste passano dai server dei fornitori che ospitano le pagine (GitHub) e il database (Supabase). Per motivi di sicurezza questi registrano dati tecnici come l'indirizzo IP e il tipo di browser, e li conservano per il tempo previsto dalle loro regole. Base giuridica: il legittimo interesse a mantenere il sito sicuro e funzionante (art. 6.1.f GDPR).</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-segnala">
+    <h2 id="h-p-segnala">Quando ci mandi una segnalazione</h2>
+    <p><strong>Quali dati.</strong> Il tipo di segnalazione, il messaggio, l'eventuale scheda a cui si riferisce e il tuo contatto (email o telefono), solo se scegli di lasciarlo.</p>
+    <p><strong>Perché.</strong> Per verificare la segnalazione, aggiornare il sito e, se hai lasciato un contatto, risponderti.</p>
+    <p><strong>Base giuridica.</strong> Il tuo consenso, che dai inviando il modulo (art. 6.1.a GDPR). Puoi ritirarlo quando vuoi scrivendo a ${mail}.</p>
+    <p><strong>Per quanto tempo.</strong> Il contatto viene cancellato appena la segnalazione è gestita. Il messaggio resta in archivio per 12 mesi dalla gestione, poi viene cancellato automaticamente. Le segnalazioni le legge solo il titolare.</p>
+    <p>Ti chiediamo di non scrivere nel messaggio dati sensibili, come informazioni sulla salute.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-attivita">
+    <h2 id="h-p-attivita">Se gestisci un'attività presente sul sito</h2>
+    <p>La scheda pubblica solo i dati scelti nel modulo di adesione firmato: nome dell'attività, contatti, orari, prodotti, foto e, se autorizzato, il nome del titolare.</p>
+    <p><strong>Base giuridica.</strong> Il consenso dato nel modulo (art. 6.1.a GDPR), che puoi ritirare in qualsiasi momento, del tutto o in parte, con un messaggio scritto.</p>
+    <p><strong>Per quanto tempo.</strong> Finché la scheda è attiva. Dopo la revoca, la scheda o l'elemento revocato vengono tolti dal sito entro 7 giorni e cancellati dagli archivi entro 30 giorni. Il modulo firmato non viene mai pubblicato: lo conserviamo fuori dal sito come prova del consenso.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-fornitori">
+    <h2 id="h-p-fornitori">Chi tratta i dati per nostro conto</h2>
+    <ul class="passi">
+      <li><strong>GitHub Inc.</strong> (Stati Uniti) ospita le pagine del sito.</li>
+      <li><strong>Supabase Inc.</strong> (Stati Uniti) ospita il database e le foto.</li>
+      <li><strong>Google</strong> gestisce la casella Gmail a cui arrivano le email che ci scrivi.</li>
+    </ul>
+    <p>Quando i dati escono dall'Unione Europea, il trasferimento avviene con le garanzie previste dal GDPR, come le clausole contrattuali standard approvate dalla Commissione europea o il Data Privacy Framework UE-USA. Non comunichiamo i dati ad altri.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-link">
+    <h2 id="h-p-link">Link verso altri servizi</h2>
+    <p>I pulsanti WhatsApp, Indicazioni, i profili social e i siti delle attività aprono servizi esterni, che hanno le proprie regole sulla privacy. Il sito non comunica loro nulla finché non li apri tu.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-diritti">
+    <h2 id="h-p-diritti">I tuoi diritti</h2>
+    <p>Puoi chiedere in qualsiasi momento di accedere ai tuoi dati, correggerli, cancellarli, limitarne l'uso, opporti al trattamento, riceverli in un formato leggibile e ritirare il consenso dato, scrivendo a ${mail}. Rispondiamo entro un mese.</p>
+    <p>Se ritieni che i tuoi dati siano trattati in modo non corretto, puoi presentare reclamo al <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener">Garante per la protezione dei dati personali</a>.</p>
+    <p>Il sito non prende decisioni automatiche sulle persone e non fa profilazione.</p>
+  </section>
+
+  <section class="sezione testo" aria-labelledby="h-p-note">
+    <h2 id="h-p-note">Note legali</h2>
+    <p>Territoria ${esc(CFG.nomeComune || "Sacrofano")} è un progetto privato e indipendente, gestito da ${titolare}. È gratuito per chi lo consulta e per le attività presenti. Non è il sito del Comune e non lo rappresenta.</p>
+    <p>Le informazioni sulle attività sono fornite dai titolari, che ne sono responsabili. Le verifichiamo e le aggiorniamo, ma orari e prodotti possono cambiare: nel dubbio, contatta direttamente l'attività. Avvisi ed eventi riportano sempre la fonte.</p>
+    <p>Il sito non vende nulla e non gestisce acquisti o pagamenti: ogni acquisto avviene direttamente con l'attività.</p>
+    <p>Il sito non è una testata giornalistica, perché è aggiornato senza una periodicità fissa (legge 7 marzo 2001, n. 62).</p>
+    <p>Foto e testi delle schede appartengono alle attività o ai loro autori e sono pubblicati con il loro permesso: per riutilizzarli serve il loro consenso.</p>
+    <p>I caratteri tipografici Atkinson Hyperlegible (Braille Institute) e Bricolage Grotesque sono distribuiti con licenza SIL Open Font License 1.1.</p>
+    <p>Per segnalare un errore o un contenuto da correggere usa il <a href="#/info?sez=segnala">modulo di segnalazione</a> o scrivi a ${mail}.</p>
   </section>`;
 }
 
@@ -608,6 +694,7 @@ function paginaDaConfigurare() {
    NAVIGAZIONE
    ===================================================================== */
 const TITOLI = { "": "Sacrofano", attivita: "Attività", bacheca: "Bacheca", servizi: "Servizi utili", info: "Info" };
+const TITOLI_PAGINE = { privacy: "Privacy e note legali" };
 let pronto = false;
 
 function leggiHash() {
@@ -627,6 +714,7 @@ function mostra(primo) {
   else if (r === "bacheca") html = paginaBacheca(q);
   else if (r === "servizi") html = paginaServizi();
   else if (r === "info") html = paginaInfo(q);
+  else if (r === "privacy") { html = paginaPrivacy(); sezione = "info"; }
   else html = pagina404();
   main.innerHTML = html;
   document.querySelectorAll("[data-nav]").forEach(a => {
@@ -638,7 +726,7 @@ function mostra(primo) {
   }
   const scheda = r === "a" ? ATTIVITA.find(x => x.id === p[1]) : null;
   if (scheda) conta("scheda", { attivita_id: scheda.id });
-  document.title = (scheda ? scheda.nome : (TITOLI[sezione] || "Sacrofano")) + " | Territoria";
+  document.title = (scheda ? scheda.nome : (TITOLI_PAGINE[r] || TITOLI[sezione] || "Sacrofano")) + " | Territoria";
   const sez = q.get("sez");
   if (sez && document.getElementById(sez)) document.getElementById(sez).scrollIntoView();
   else window.scrollTo(0, 0);

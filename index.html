@@ -7,11 +7,10 @@
 <meta name="description" content="Botteghe, produttori, servizi, eventi e avvisi di Sacrofano in un posto solo.">
 <meta name="theme-color" content="#1F4A33">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self' https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://*.supabase.co; img-src 'self' https://*.supabase.co; style-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,500..800&display=swap" rel="stylesheet">
+<link rel="preload" href="font/atkinson-regular.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="font/bricolage-grotesque.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="stile.css">
 <script src="config.js" defer></script>
 <script src="app.js" defer></script>
@@ -45,6 +44,7 @@
 
 <footer class="contenitore piede">
   <p>Territoria è un progetto privato e indipendente. Non è il sito del Comune di Sacrofano e non lo rappresenta: per atti e comunicazioni ufficiali consulta il <a href="https://www.comune.sacrofano.rm.it" target="_blank" rel="noopener">sito del Comune</a>.</p>
+  <p><a href="#/privacy">Privacy e note legali</a> · Il sito non usa cookie.</p>
   <p data-aggiornato></p>
 </footer>
 

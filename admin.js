@@ -1771,8 +1771,18 @@ async function entra() {
   await caricaElenchi();
   mostraNavigazione(true);
   hashCorrente = location.hash;
-  aggiornaPallino();
+  pulisciSegnalazioniVecchie().then(aggiornaPallino);
   await mostra();
+}
+
+/* Come promette l'informativa privacy: le segnalazioni già gestite
+   si cancellano da sole 12 mesi dopo la gestione (ad ogni accesso). */
+async function pulisciSegnalazioniVecchie() {
+  const limite = new Date();
+  limite.setMonth(limite.getMonth() - 12);
+  try {
+    await elimina("segnalazioni", `stato=in.(approvata,scartata)&gestita_il=lt.${encodeURIComponent(limite.toISOString())}`);
+  } catch (e) { /* riprova al prossimo accesso */ }
 }
 
 document.querySelector("[data-salta]").addEventListener("click", e => { e.preventDefault(); app.focus(); });
