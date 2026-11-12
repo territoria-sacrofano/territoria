@@ -22,7 +22,8 @@ Schede, annunci, servizi e segnalazioni si gestiscono dal pannello: `admin.html`
 - Si cambiano dal pannello: Altro → Orari autobus. Ogni tabella è una direzione in un tipo di giorno (Lun–Ven, sabato, festivi).
 - Sul sito compaiono in «Servizi utili» (prossime partenze da Sacrofano) e nella pagina `#/orari`, che sceglie da sola il giorno di oggi e riconosce le feste nazionali.
 - Cambio di stagione: apri ogni tabella e usa «Incolla molti orari insieme» con «Sostituisci le corse attuali». Per creare la versione del sabato di una tabella usa «Duplica».
-- I dati stanno nella tabella `orari_trasporto` (aggiornamento del database n. 3). Fonte: avviso del Comune «Trasporto pubblico: aggiornamento orari invernali», a cura dell'Ufficio Trasporto Pubblico Locale.
+- Il riquadro in «Servizi utili» ha due viste: «Da Sacrofano» (partenze da qui) e «Verso Sacrofano» (corse per tornare, con il luogo di partenza preso dal campo «Da dove parte»). Nella vista «Verso Sacrofano» l'ordine dentro ogni gruppo è a specchio rispetto all'andata.
+- I dati stanno nella tabella `orari_trasporto` (aggiornamenti del database n. 3 e n. 4). Fonte: avviso del Comune «Trasporto pubblico: aggiornamento orari invernali», a cura dell'Ufficio Trasporto Pubblico Locale.
 - Le feste del paese senza corse (il patrono, San Biagio, 3 febbraio) stanno in `config.js`, alla voce `festeLocali`.
 
 ## Privacy

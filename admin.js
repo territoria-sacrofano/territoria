@@ -1652,6 +1652,8 @@ async function paginaModificaOrario(id, q) {
   if (!t) { app.innerHTML = `<h1 class="titolo-pagina" tabindex="-1">Tabella non trovata</h1><p><a class="bottone" href="#/orari">Torna agli orari</a></p>`; return; }
   const gruppi = [...new Set(lista.map(x => x.gruppo))];
   const fermate = (Array.isArray(t.fermate) ? t.fermate : []).slice(0, 3);
+  /* Il campo "provenienza" arriva con l'aggiornamento 4 del database */
+  const conProvenienza = lista.length ? "provenienza" in lista[0] : true;
   const titolo = nuovo ? (copia ? "Copia della tabella" : "Nuova tabella") : `${t.direzione} · ${GIORNI_ORARI[t.giorni] || t.giorni}`;
   app.innerHTML = `
   <a class="indietro-admin" href="#/orari">‹ Orari autobus</a>
@@ -1681,6 +1683,8 @@ async function paginaModificaOrario(id, q) {
         <input name="sottotitolo" maxlength="120" value="${esc(t.sottotitolo || "")}"></label>
       <label class="campo"><span>Direzione</span><small>Il nome sul pulsante. Es. «Verso Roma».</small>
         <input name="direzione" maxlength="60" value="${esc(t.direzione || "")}"></label>
+      ${conProvenienza ? `<label class="campo"><span>Da dove parte (facoltativo)</span><small>Nel riquadro «Verso Sacrofano» la corsa compare come «Da …». Es. «Roma (Montebello)». Se lo lasci vuoto si usa la prima fermata.</small>
+        <input name="provenienza" maxlength="60" value="${esc(t.provenienza || "")}"></label>` : ""}
       <label class="campo"><span>Percorso (facoltativo)</span><small>Es. «Da Sacrofano (P.zza Ugo Serata) alla stazione di Montebello».</small>
         <input name="percorso" maxlength="200" value="${esc(t.percorso || "")}"></label>
       <label class="campo"><span>Giorni</span><select name="giorni">${Object.entries(GIORNI_ORARI).map(([v, nome]) => `<option value="${v}"${v === t.giorni ? " selected" : ""}>${esc(nome)}</option>`).join("")}</select></label>
@@ -1811,6 +1815,7 @@ async function paginaModificaOrario(id, q) {
       fonte_nome: vuotoANull(f.fonte_nome.value), fonte_url: url,
       pubblicato: f.pubblicato.checked, ordine: Number(f.ordine.value) || 0
     };
+    if (conProvenienza) dati.provenienza = vuotoANull(f.provenienza.value);
     esito.className = "esito-invio"; esito.textContent = "Salvataggio…";
     try {
       if (nuovo) await inserisci("orari_trasporto", dati); else await aggiorna("orari_trasporto", `id=eq.${t.id}`, dati);

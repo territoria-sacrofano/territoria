@@ -575,36 +575,62 @@ function gruppiDi(tabelle) {
   return gruppi;
 }
 
-/* Le prossime corse da Sacrofano, per ogni direzione che parte da qui */
-function htmlProssime() {
+/* Una tabella "parte da Sacrofano" se Sacrofano è una sua fermata e dopo
+   c'è ancora strada; "arriva a Sacrofano" se prima di Sacrofano c'è un'altra
+   fermata, oppure se i suoi orari sono di un altro luogo (fermata_comune vuota). */
+const fc = t => Number.isInteger(t.fermata_comune) ? t.fermata_comune : null;
+const parteDalComune = t => fc(t) !== null && (fc(t) < fermateDi(t).length - 1 || fermateDi(t).length === 1);
+const arrivaAlComune = t => fc(t) === null || fc(t) > 0;
+const etichettaArrivo = t => t.provenienza ? "Da " + t.provenienza : fc(t) > 0 ? "Da " + fermateDi(t)[0] : t.gruppo;
+/* Per tornare: stessi gruppi, ma dentro ogni gruppo l'ordine è a specchio
+   (si va verso Borgo Pineto e poi Magliano, si torna da Borgo Pineto e poi da Magliano) */
+const tabelleVersoComune = tipo => gruppiDi(tabelleDel(tipo).filter(arrivaAlComune)).flatMap(g => g.tabelle.slice().reverse());
+const tabelleDalComune = tipo => tabelleDel(tipo).filter(parteDalComune);
+
+/* Le prossime corse: modo "da" = partenze da Sacrofano, "verso" = per tornare a Sacrofano */
+function htmlProssime(modo) {
   const ora = adessoRoma(), tipo = tipoGiorno(ora.data, ora.g);
-  const tabelle = tabelleDel(tipo).filter(t => Number.isInteger(t.fermata_comune));
+  const verso = modo === "verso";
+  const tabelle = verso ? tabelleVersoComune(tipo) : tabelleDalComune(tipo);
   if (!tabelle.length) {
     return tipo === "festivi" && tabelleDel("feriali").length
       ? `<p class="bus-vuoto">Oggi è festivo: non ci sono corse in programma.</p>`
       : `<p class="bus-vuoto">Oggi non ci sono corse in programma.</p>`;
   }
   const righe = tabelle.map(t => {
-    const col = t.fermata_comune;
+    const col = verso ? 0 : fc(t);
+    const arrivo = verso && fc(t) !== null && fc(t) > 0 ? fc(t) : null;
     const dopo = corseDi(t).map(c => ({ c, min: minutiDi(c, col) })).filter(x => x.min !== null && x.min >= ora.min)
       .sort((a, b) => a.min - b.min).slice(0, 2);
     const prima = dopo[0];
+    let poi = "";
+    if (prima) {
+      const pezzi = [];
+      if (arrivo !== null && oraValida(prima.c.orari[arrivo])) pezzi.push(`a Sacrofano verso le ${esc(fmtOra(prima.c.orari[arrivo]))}`);
+      pezzi.push(dopo[1] ? `poi ${esc(fmtOra(dopo[1].c.orari[col]))}${dopo[1].c.mezzo ? " · " + esc(dopo[1].c.mezzo) : ""}` : "ultima corsa di oggi");
+      poi = `<span class="bus-poi">${pezzi.join(" · ")}</span>`;
+    }
     return `<li>
-      <span class="bus-verso">${esc(t.direzione)}</span>
-      ${prima ? `<span class="bus-ora"><b>${esc(fmtOra(prima.c.orari[col]))}</b>${badgeMezzo(prima.c.mezzo)}<span class="tra">${esc(traQuanto(prima.min - ora.min))}</span></span>
-        ${dopo[1] ? `<span class="bus-poi">poi ${esc(fmtOra(dopo[1].c.orari[col]))}${dopo[1].c.mezzo ? " · " + esc(dopo[1].c.mezzo) : ""}</span>` : `<span class="bus-poi">ultima corsa di oggi</span>`}`
+      <span class="bus-verso">${esc(verso ? etichettaArrivo(t) : t.direzione)}</span>
+      ${prima ? `<span class="bus-ora"><b>${esc(fmtOra(prima.c.orari[col]))}</b>${badgeMezzo(prima.c.mezzo)}<span class="tra">${esc(traQuanto(prima.min - ora.min))}</span></span>${poi}`
       : `<span class="bus-poi">Per oggi le corse sono finite</span>`}
     </li>`;
   }).join("");
-  return `<ul class="bus-prossime">${righe}</ul>`;
+  return `<ul class="bus-prossime">${righe}</ul>${verso ? `<p class="nota bus-nota-modo">Orari di partenza da ogni luogo; alcuni sono stimati. I dettagli sono in «Tutti gli orari».</p>` : ""}`;
 }
 
+const SOTTOTITOLI_BUS = { da: "Prossime partenze da Sacrofano", verso: "Prossime corse per tornare a Sacrofano" };
 function boxAutobus() {
   if (!ORARI.length) return "";
+  const conRitorno = ORARI.some(arrivaAlComune);
   return `<section class="bus-box" aria-labelledby="h-bus">
     <div class="bus-capo"><h2 id="h-bus">Autobus e pulmini</h2><a href="#/orari">Tutti gli orari ›</a></div>
-    <p class="bus-sotto">Prossime partenze da Sacrofano</p>
-    <div data-bus-prossime>${htmlProssime()}</div>
+    ${conRitorno ? `<div class="bus-modi" role="group" aria-label="Quali corse vedere">
+      <button type="button" class="chip" data-bus-modo="da" aria-pressed="true">Da Sacrofano</button>
+      <button type="button" class="chip" data-bus-modo="verso" aria-pressed="false">Verso Sacrofano</button>
+    </div>` : ""}
+    <p class="bus-sotto" data-bus-sotto>${SOTTOTITOLI_BUS.da}</p>
+    <div data-bus-prossime data-modo="da" aria-live="polite">${htmlProssime("da")}</div>
   </section>`;
 }
 
@@ -689,7 +715,7 @@ function paginaOrari(q) {
 function aggiornaBus() {
   const ora = adessoRoma();
   const box = document.querySelector("[data-bus-prossime]");
-  if (box) box.innerHTML = htmlProssime();
+  if (box) box.innerHTML = htmlProssime(box.dataset.modo || "da");
   document.querySelectorAll("[data-bus-oggi] tbody").forEach(tb => {
     let trovata = false;
     tb.querySelectorAll("tr[data-min]").forEach(tr => {
@@ -974,6 +1000,14 @@ main.addEventListener("click", async e => {
     document.getElementById("lista-bacheca").innerHTML = listaAvvisi(prossimi(filtroBacheca));
     document.querySelectorAll("[data-tipo]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.tipo === filtroBacheca)));
     try { history.replaceState(null, "", location.pathname + "#/bacheca" + (filtroBacheca ? "?tipo=" + filtroBacheca : "")); } catch (err) { /* niente */ }
+  }
+  else if (b.hasAttribute("data-bus-modo")) {
+    const modo = b.dataset.busModo;
+    document.querySelectorAll("[data-bus-modo]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    const box = document.querySelector("[data-bus-prossime]");
+    box.dataset.modo = modo;
+    box.innerHTML = htmlProssime(modo);
+    document.querySelector("[data-bus-sotto]").textContent = SOTTOTITOLI_BUS[modo];
   }
   else if (b.hasAttribute("data-bus-dir")) {
     const [g] = b.dataset.busDir.split("-");

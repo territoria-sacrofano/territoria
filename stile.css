@@ -267,6 +267,9 @@ h1:focus{outline:none}
 .bus-capo h2{font-size:1.45rem;font-weight:750}
 .bus-capo a{font-weight:700;text-decoration:none;white-space:nowrap}
 .bus-sotto{margin:4px 0 0;color:var(--muted);font-size:1rem}
+.bus-modi{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.bus-box .bus-modi + .bus-sotto{margin-top:10px}
+.bus-nota-modo{margin:4px 0 14px;font-size:.92rem}
 .bus-prossime{list-style:none;margin:10px 0 0;padding:0}
 .bus-prossime li{display:grid;gap:2px;padding:12px 0;border-top:1px solid var(--line)}
 .bus-verso{font-weight:700;color:var(--muted);font-size:.95rem}
