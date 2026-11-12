@@ -148,3 +148,22 @@ dialog.finestra::backdrop{background:rgba(0,0,0,.45)}
 .controllo.ko .segno{background:color-mix(in srgb,var(--closed) 22%,transparent);color:var(--closed)}
 .controllo.ko [data-esito]{color:var(--closed);font-weight:700}
 .controllo.boh .segno{background:var(--accent-soft)}
+
+/* ============ ORARI AUTOBUS ============ */
+.corse{display:block;min-width:0}
+.corsa{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:1rem}
+.corsa-testa{padding:0 0 4px;border-bottom:2px solid var(--line);font-size:.82rem;font-weight:700;color:var(--muted);line-height:1.2;align-items:end}
+.corsa-testa span,.corsa [data-ora]{flex:0 0 5.2em;min-width:0}
+.corsa input,.corsa select{min-width:0;padding:8px 9px;font:inherit;font-size:1rem;color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:10px}
+.corsa [data-ora]{font-variant-numeric:tabular-nums;text-align:center}
+.corsa [data-mezzo]{flex:1 1 8em}
+.corsa [aria-invalid="true"]{border-color:var(--closed)}
+.corsa .togli{flex:0 0 auto;min-height:40px;padding:0 12px}
+.corsa .corsa-nota{flex:1 1 100%;font-size:.95rem;padding:6px 9px}
+.corse + .aggiungi{margin-top:12px}
+.incolla{margin-top:18px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;min-width:0}
+.incolla summary{font-weight:700;cursor:pointer;min-height:32px;display:flex;align-items:center}
+.incolla[open] summary{margin-bottom:8px}
+.incolla .campo{margin-top:10px}
+.incolla textarea,.incolla select,.corsa input,.corsa select{box-sizing:border-box}
+.incolla textarea{min-height:120px !important;font-variant-numeric:tabular-nums}

@@ -18,6 +18,10 @@ window.TERRITORIA = {
   comune: "sacrofano",
   nomeComune: "Sacrofano",
 
+  // Feste locali senza corse di autobus e pulmini, come "MM-GG"
+  // (le feste nazionali il sito le conosce già). 02-03 = San Biagio, patrono.
+  festeLocali: ["02-03"],
+
   // Chi risponde del sito: compare nella pagina "Privacy e note legali"
   titolare: "Boris Kim Kekulawala Cutipa",
   emailContatto: "territoria.sacrofano@gmail.com"

@@ -456,7 +456,7 @@ function leggiHash() {
 async function mostra() {
   const { parti, q } = leggiHash();
   const r = parti[0] || "";
-  const sezioni = { "": "", attivita: "attivita", bacheca: "bacheca", segnalazioni: "segnalazioni", altro: "altro", servizi: "altro", categorie: "altro", etichette: "altro", esporta: "altro", sicurezza: "altro" };
+  const sezioni = { "": "", attivita: "attivita", bacheca: "bacheca", segnalazioni: "segnalazioni", altro: "altro", servizi: "altro", categorie: "altro", etichette: "altro", esporta: "altro", sicurezza: "altro", orari: "altro" };
   const sez = sezioni[r] ?? "";
   document.querySelectorAll("[data-nav]").forEach(a => {
     if (a.dataset.nav === sez) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
@@ -473,6 +473,8 @@ async function mostra() {
     else if (r === "segnalazioni") await paginaSegnalazioni(q);
     else if (r === "servizi" && parti[1]) await paginaModificaServizio(parti[1]);
     else if (r === "servizi") await paginaServizi();
+    else if (r === "orari" && parti[1]) await paginaModificaOrario(parti[1], q);
+    else if (r === "orari") await paginaOrariAdmin();
     else if (r === "categorie" && parti[1]) await paginaModificaCategoria(parti[1]);
     else if (r === "etichette" && parti[1]) await paginaModificaEtichetta(parti[1]);
     else if (r === "categorie") await paginaCategorie();
@@ -524,14 +526,17 @@ async function paginaRiepilogo(q) {
   const giorni = [7, 30, 90].includes(Number(q.get("giorni"))) ? Number(q.get("giorni")) : 30;
   const al = oggiISO(), dal = aggiungiGiorni(al, -(giorni - 1));
   const alPrima = aggiungiGiorni(dal, -1), dalPrima = aggiungiGiorni(alPrima, -(giorni - 1));
-  const [r, rp, stato, att, ann, ctrl] = await Promise.all([
+  const [r, rp, stato, att, ann, ctrl, orari] = await Promise.all([
     rpc("riepilogo_statistiche", { dal, al }),
     rpc("riepilogo_statistiche", { dal: dalPrima, al: alPrima }),
     rpc("stato_sistema"),
     leggi("attivita?select=id,nome,stato,esempio"),
     leggi(`annunci?select=id&pubblicato=is.true&scadenza=gte.${al}`),
-    leggi("impostazioni?chiave=eq.ultimo_controllo&select=valore")
+    leggi("impostazioni?chiave=eq.ultimo_controllo&select=valore"),
+    leggi("orari_trasporto?select=valido_al,pubblicato").catch(e => { if (e instanceof SessioneScaduta) throw e; return null; })
   ]);
+  const orariScaduti = orari ? orari.filter(t => t.pubblicato && t.valido_al && t.valido_al < oggiISO()).length : 0;
+  const vistiOrari = Number(r.eventi.orari || 0);
   const ultimoCtrl = ctrl[0] && ctrl[0].valore;
   const giorniCtrl = ultimoCtrl ? Math.floor((Date.now() - new Date(ultimoCtrl.quando).getTime()) / 86400000) : null;
   const nomeDi = id => (att.find(a => a.id === id) || {}).nome || id;
@@ -571,6 +576,7 @@ async function paginaRiepilogo(q) {
         <li><span>Schede ferme da più di 90 giorni</span>${stato.schede_ferme ? `<a href="#/attivita?filtro=ferme">${numero(stato.schede_ferme)}</a>` : "<span>nessuna</span>"}</li>
         <li><span>Ultima copia di sicurezza</span>${giorniCopia === null ? `<a href="#/esporta">mai fatta</a>` : giorniCopia > 30 ? `<a href="#/esporta">${giorniCopia} giorni fa</a>` : `<span>${giorniCopia === 0 ? "oggi" : giorniCopia + " giorni fa"}</span>`}</li>
         <li><span>Controllo di sicurezza</span>${giorniCtrl === null ? `<a href="#/sicurezza">mai fatto</a>` : (giorniCtrl > 30 || ultimoCtrl.esito !== "tutto superato") ? `<a href="#/sicurezza">${giorniCtrl === 0 ? "oggi" : giorniCtrl + " giorni fa"}${ultimoCtrl.esito !== "tutto superato" ? ", da rivedere" : ""}</a>` : `<span>${giorniCtrl === 0 ? "oggi" : giorniCtrl + " giorni fa"}, superato</span>`}</li>
+        <li><span>Orari autobus</span>${!orari ? `<a href="#/orari">da attivare</a>` : orariScaduti ? `<a href="#/orari">${orariScaduti} ${orariScaduti === 1 ? "tabella scaduta" : "tabelle scadute"}</a>` : !orari.length ? `<a href="#/orari">nessuna tabella</a>` : `<span>consultati ${numero(vistiOrari)} ${vistiOrari === 1 ? "volta" : "volte"}</span>`}</li>
         <li><span>Spazio usato nel database</span><span>${mb.toFixed(1).replace(".", ",")} MB di 500 MB</span></li>
       </ul>
     </section>
@@ -1395,7 +1401,7 @@ async function paginaServizi() {
   <a class="indietro-admin" href="#/altro">‹ Altro</a>
   <div class="capo"><h1 class="titolo-pagina" tabindex="-1">Servizi utili</h1>
     <div class="capo-azioni"><a class="primario" href="#/servizi/nuovo">+ Nuovo servizio</a></div></div>
-  <p class="intro">Link ai servizi pubblici nella pagina "Servizi utili" del sito.</p>
+  <p class="intro">Link ai servizi pubblici nella pagina "Servizi utili" del sito. Gli orari di autobus e pulmini si cambiano in <a href="#/orari">Orari autobus</a>.</p>
   <ul class="elenco">${lista.map(s => `<li><a class="riga" href="#/servizi/${s.id}">
     <span><strong>${esc(s.nome)}</strong><span class="sotto">${esc(s.gruppo)} · ${esc(s.link)}</span></span>
     <span class="badges">${s.attivo ? "" : `<span class="badge">Nascosto</span>`}${s.urgente ? `<span class="badge rosso">Emergenza</span>` : ""}</span>
@@ -1560,11 +1566,277 @@ async function paginaModificaEtichetta(id) {
 }
 
 /* =====================================================================
+   ORARI AUTOBUS E PULMINI
+   Ogni riga della tabella "orari_trasporto" è una direzione in un tipo
+   di giorno. Le corse hanno un orario per ogni fermata.
+   ===================================================================== */
+const GIORNI_ORARI = { feriali: "Lun–Ven", sabato: "Sabato", festivi: "Domenica e festivi", tutti: "Tutti i giorni" };
+const MEZZI = ["Pulmino", "COTRAL", "Treno"];
+/* Accetta 7:16, 07.16, 7,16, 0716, 716 → "07:16" */
+function normOra(v) {
+  const m = String(v || "").trim().match(/^(\d{1,2})[:.,]?(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]), mi = Number(m[2]);
+  return h < 24 && mi < 60 ? String(h).padStart(2, "0") + ":" + m[2] : null;
+}
+const primoOrario = c => (c.orari || []).find(Boolean) || "";
+
+async function leggiOrari() {
+  try { return await leggi("orari_trasporto?select=*&order=ordine.asc,direzione.asc,giorni.asc"); }
+  catch (e) { if (e instanceof SessioneScaduta) throw e; return null; }
+}
+const mancaAggiornamento3 = () => `<div class="errore-dati" role="alert"><h2>Manca l'aggiornamento del database</h2>
+  <p>In Supabase apri SQL Editor ed esegui lo script <b>territoria-aggiornamento-3.sql</b>, poi ricarica questa pagina.</p></div>`;
+
+async function paginaOrariAdmin() {
+  const lista = await leggiOrari();
+  const testa = `<a class="indietro-admin" href="#/altro">‹ Altro</a>
+  <div class="capo"><h1 class="titolo-pagina" tabindex="-1">Orari autobus</h1>
+    ${lista ? `<div class="capo-azioni"><a class="primario" href="#/orari/nuova">+ Nuova tabella</a></div>` : ""}</div>`;
+  if (!lista) { app.innerHTML = testa + mancaAggiornamento3(); return; }
+  const oggi = oggiISO();
+  const gruppi = [...new Set(lista.map(t => t.gruppo))];
+  app.innerHTML = `${testa}
+  <p class="intro">Ogni tabella è una direzione in un tipo di giorno. Sul sito compaiono in «Servizi utili», con le prossime partenze da Sacrofano.</p>
+  ${gruppi.map(g => `<h2 class="sottotitolo">${esc(g)}</h2>
+  <ul class="elenco">${lista.filter(t => t.gruppo === g).map(t => {
+    const corse = (t.corse || []).filter(c => c && Array.isArray(c.orari));
+    const ore = corse.map(primoOrario).filter(Boolean).sort();
+    return `<li><a class="riga" href="#/orari/${t.id}">
+      <span><strong>${esc(t.direzione)} · ${esc(GIORNI_ORARI[t.giorni] || t.giorni)}</strong>
+      <span class="sotto">${corse.length} ${corse.length === 1 ? "corsa" : "corse"}${ore.length ? ` · dalle ${esc(ore[0])} alle ${esc(ore[ore.length - 1])}` : ""} · aggiornata il ${esc(dataBreve(t.aggiornato_il))}</span></span>
+      <span class="badges">${t.pubblicato ? "" : `<span class="badge">Nascosta</span>`}${t.valido_al && t.valido_al < oggi ? `<span class="badge rosso">Scaduta</span>` : ""}</span>
+    </a></li>`;
+  }).join("")}</ul>`).join("") || `<p class="nota">Nessuna tabella. Crea la prima con «+ Nuova tabella».</p>`}
+  <p class="nota">Al cambio di stagione (per esempio l'orario estivo) apri ogni tabella, usa «Incolla molti orari insieme» con «Sostituisci le corse attuali» e aggiorna il periodo. Per fare la versione del sabato di una tabella, aprila e premi «Duplica».</p>`;
+}
+
+function testaCorse(nomi) {
+  const n = Math.max(1, nomi.length);
+  return `<div class="corsa corsa-testa n${n}" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<span>${esc(nomi[i] || "Ora")}</span>`).join("")}</div>`;
+}
+function rigaCorsa(c, nomi, k) {
+  const n = Math.max(1, nomi.length);
+  const mezzo = c.mezzo || "";
+  const opzioni = ["", ...MEZZI].concat(mezzo && !MEZZI.includes(mezzo) ? [mezzo] : []);
+  return `<div class="corsa n${n}" data-corsa>
+    ${Array.from({ length: n }, (_, i) => `<input data-ora inputmode="decimal" maxlength="5" placeholder="00:00" value="${esc((c.orari || [])[i] || "")}" aria-label="${esc((nomi[i] || "Ora") + ", corsa " + (k + 1))}">`).join("")}
+    <select data-mezzo aria-label="Mezzo, corsa ${k + 1}">${opzioni.map(m => `<option value="${esc(m)}"${m === mezzo ? " selected" : ""}>${esc(m || "Mezzo non indicato")}</option>`).join("")}</select>
+    <button type="button" class="togli" data-togli-corsa aria-label="Togli la corsa ${k + 1}">✕</button>
+    <input class="corsa-nota" data-nota maxlength="200" placeholder="Nota (facoltativa)" value="${esc(c.nota || "")}" aria-label="Nota, corsa ${k + 1}">
+  </div>`;
+}
+
+function analizzaIncolla(testo, n, mezzoBase) {
+  const corse = [], scartate = [];
+  testo.split(/\r?\n/).forEach(riga => {
+    const ore = [];
+    const re = /(^|[^\d])(\d{1,2})[:.](\d{2})(?!\d)/g;
+    let m;
+    while ((m = re.exec(riga))) { const v = normOra(m[2] + ":" + m[3]); if (v) ore.push(v); }
+    if (!ore.length) { if (riga.trim()) scartate.push(riga.trim()); return; }
+    const mezzo = /cotral/i.test(riga) ? "COTRAL" : /unit[àa]\s+di\s+rete|pulmin|udr/i.test(riga) ? "Pulmino" : /treno|ferrovi/i.test(riga) ? "Treno" : mezzoBase;
+    corse.push({ orari: ore.slice(0, n), mezzo, nota: "" });
+  });
+  return { corse, scartate };
+}
+
+async function paginaModificaOrario(id, q) {
+  const lista = await leggiOrari();
+  if (!lista) { app.innerHTML = `<a class="indietro-admin" href="#/orari">‹ Orari autobus</a>` + mancaAggiornamento3(); return; }
+  const nuovo = id === "nuova";
+  const copia = nuovo && q.get("copia") ? lista.find(x => x.id === q.get("copia")) : null;
+  const vuota = { gruppo: "", sottotitolo: "", direzione: "", percorso: "", giorni: "feriali", fermate: ["Partenza da Sacrofano"], fermata_comune: 0,
+    corse: [{ orari: [""], mezzo: "", nota: "" }], legenda: "", note: "", periodo: "", valido_dal: null, valido_al: null, fonte_nome: "", fonte_url: "", pubblicato: true, ordine: (lista.length + 1) * 10 };
+  const t = nuovo ? (copia ? Object.assign({}, copia, { id: undefined }) : vuota) : lista.find(x => x.id === id);
+  if (!t) { app.innerHTML = `<h1 class="titolo-pagina" tabindex="-1">Tabella non trovata</h1><p><a class="bottone" href="#/orari">Torna agli orari</a></p>`; return; }
+  const gruppi = [...new Set(lista.map(x => x.gruppo))];
+  const fermate = (Array.isArray(t.fermate) ? t.fermate : []).slice(0, 3);
+  const titolo = nuovo ? (copia ? "Copia della tabella" : "Nuova tabella") : `${t.direzione} · ${GIORNI_ORARI[t.giorni] || t.giorni}`;
+  app.innerHTML = `
+  <a class="indietro-admin" href="#/orari">‹ Orari autobus</a>
+  <h1 class="titolo-pagina" tabindex="-1">${esc(titolo)}</h1>
+  ${copia ? `<p class="intro">È una copia di «${esc(copia.direzione)} · ${esc(GIORNI_ORARI[copia.giorni])}». Cambia i giorni e gli orari, poi salva.</p>` : ""}
+  <form class="modifica" id="f-orario" novalidate>
+    <section class="gruppo-campi" aria-labelledby="o-corse"><h2 id="o-corse">Corse</h2>
+      <p class="nota">Una riga per corsa. Scrivi l'ora come 07:16 (va bene anche 7.16 o 716). Quando salvi, le righe si mettono in ordine da sole.</p>
+      <div class="corse" id="corse"></div>
+      <button type="button" class="bottone piccolo aggiungi" id="aggiungi-corsa">+ Aggiungi corsa</button>
+      <details class="incolla">
+        <summary>Incolla molti orari insieme</summary>
+        <p class="nota">Una corsa per riga: l'ora (oppure le ore, una per fermata, nell'ordine delle fermate) e, se c'è, il mezzo. Esempi: «07:40 COTRAL», «06:50 07:16 07:30».</p>
+        <label class="campo"><span>Orari</span><textarea id="incolla-testo" rows="6"></textarea></label>
+        <label class="campo"><span>Mezzo per le righe che non lo dicono</span><select id="incolla-mezzo"><option value="">Non indicato</option>${MEZZI.map(m => `<option>${esc(m)}</option>`).join("")}</select></label>
+        <label class="spunta"><input type="checkbox" id="incolla-sostituisci"><span><b>Sostituisci le corse attuali</b><small>Per il cambio di stagione. Se non lo spunti, le nuove corse si aggiungono.</small></span></label>
+        <p><button type="button" class="bottone piccolo" id="incolla-aggiungi">Aggiungi queste corse</button></p>
+        <p class="esito-invio" id="esito-incolla" role="status" aria-live="polite"></p>
+      </details>
+    </section>
+
+    <section class="gruppo-campi" aria-labelledby="o-linea"><h2 id="o-linea">Linea e direzione</h2><div class="campi">
+      <label class="campo"><span>Titolo del gruppo</span><small>Le direzioni con lo stesso titolo stanno insieme sul sito. Es. «Da e per Roma».</small>
+        <input name="gruppo" list="o-gruppi" maxlength="60" value="${esc(t.gruppo || "")}"></label>
+      <datalist id="o-gruppi">${gruppi.map(g => `<option value="${esc(g)}">`).join("")}</datalist>
+      <label class="campo"><span>Sottotitolo (facoltativo)</span><small>Es. «Linea 13 · pulmino Unità di Rete 2 e autobus COTRAL».</small>
+        <input name="sottotitolo" maxlength="120" value="${esc(t.sottotitolo || "")}"></label>
+      <label class="campo"><span>Direzione</span><small>Il nome sul pulsante. Es. «Verso Roma».</small>
+        <input name="direzione" maxlength="60" value="${esc(t.direzione || "")}"></label>
+      <label class="campo"><span>Percorso (facoltativo)</span><small>Es. «Da Sacrofano (P.zza Ugo Serata) alla stazione di Montebello».</small>
+        <input name="percorso" maxlength="200" value="${esc(t.percorso || "")}"></label>
+      <label class="campo"><span>Giorni</span><select name="giorni">${Object.entries(GIORNI_ORARI).map(([v, nome]) => `<option value="${v}"${v === t.giorni ? " selected" : ""}>${esc(nome)}</option>`).join("")}</select></label>
+      <label class="campo"><span>Ordine</span><small>I numeri più bassi vengono prima.</small><input name="ordine" type="number" value="${Number(t.ordine) || 0}"></label>
+    </div></section>
+
+    <section class="gruppo-campi" aria-labelledby="o-fermate"><h2 id="o-fermate">Fermate</h2>
+      <p class="nota">Una colonna di orari per ogni fermata: ne basta una.</p>
+      <div class="campi">
+        ${[0, 1, 2].map(i => `<label class="campo"><span>Fermata ${i + 1}${i ? " (facoltativa)" : ""}</span><input name="fermata${i}" data-fermata maxlength="60" value="${esc(fermate[i] || "")}"></label>`).join("")}
+        <label class="campo"><span>Quale fermata è a Sacrofano?</span><small>Serve per le «prossime partenze da Sacrofano». Se gli orari sono di un'altra fermata, scegli «Nessuna».</small>
+          <select name="fermata_comune"></select></label>
+      </div></section>
+
+    <section class="gruppo-campi" aria-labelledby="o-info"><h2 id="o-info">Informazioni per chi legge</h2><div class="campi">
+      <label class="campo"><span>Legenda (facoltativa)</span><small>Cosa significano i mezzi. Es. «Pulmino: Unità di Rete 2, da Sacrofano a Riano».</small>
+        <textarea name="legenda" rows="3" maxlength="500">${esc(t.legenda || "")}</textarea></label>
+      <label class="campo"><span>Note (facoltative)</span><small>Avvertenze per tutta la tabella. Es. «Orario stimato».</small>
+        <textarea name="note" rows="3" maxlength="1000">${esc(t.note || "")}</textarea></label>
+      <label class="campo"><span>Periodo</span><small>Es. «Orario invernale».</small><input name="periodo" maxlength="120" value="${esc(t.periodo || "")}"></label>
+      <div class="campi due">
+        <label class="campo"><span>Valido dal (facoltativo)</span><input type="date" name="valido_dal" value="${esc(t.valido_dal || "")}"></label>
+        <label class="campo"><span>Fino al (facoltativo)</span><input type="date" name="valido_al" value="${esc(t.valido_al || "")}"></label>
+      </div>
+      <label class="campo"><span>Fonte (facoltativa)</span><small>Chi ha pubblicato questi orari. Es. «Comune di Sacrofano».</small><input name="fonte_nome" maxlength="120" value="${esc(t.fonte_nome || "")}"></label>
+      <label class="campo"><span>Link alla fonte (facoltativo)</span><input name="fonte_url" inputmode="url" value="${esc(t.fonte_url || "")}" placeholder="https://"></label>
+      <div class="spunte"><label class="spunta"><input type="checkbox" name="pubblicato"${t.pubblicato ? " checked" : ""}><span><b>Visibile sul sito</b></span></label></div>
+    </div></section>
+
+    <div class="barra-salva"><button type="submit" class="primario">Salva</button>
+      ${nuovo ? "" : `<a class="bottone piccolo" href="#/orari/nuova?copia=${encodeURIComponent(t.id)}">Duplica</a>
+      <button type="button" class="bottone piccolo pericolo" id="elimina-orario">Elimina</button>`}
+      <p class="esito-invio" id="esito-orario" role="status" aria-live="polite"></p></div>
+  </form>`;
+
+  const f = document.getElementById("f-orario");
+  const box = document.getElementById("corse");
+  const leggiFermate = () => [0, 1, 2].map(i => f["fermata" + i].value.trim()).filter(Boolean);
+  const leggiCorse = () => Array.from(box.querySelectorAll("[data-corsa]")).map(rg => ({
+    orari: Array.from(rg.querySelectorAll("[data-ora]")).map(i => i.value.trim()),
+    mezzo: rg.querySelector("[data-mezzo]").value,
+    nota: rg.querySelector("[data-nota]").value.trim()
+  }));
+  const disegna = corse => {
+    const nomi = leggiFermate();
+    box.innerHTML = testaCorse(nomi) + corse.map((c, k) => rigaCorsa(c, nomi, k)).join("");
+  };
+  const scelteFermate = scelta => {
+    const nomi = leggiFermate();
+    f.fermata_comune.innerHTML = nomi.map((nome, i) => `<option value="${i}"${scelta === i ? " selected" : ""}>${esc(nome)}</option>`).join("")
+      + `<option value=""${scelta === null || scelta >= nomi.length ? " selected" : ""}>Nessuna</option>`;
+  };
+  scelteFermate(Number.isInteger(t.fermata_comune) ? t.fermata_comune : null);
+  disegna((t.corse || []).filter(c => c && Array.isArray(c.orari)));
+
+  f.addEventListener("input", segnaSporco);
+  f.addEventListener("change", e => {
+    if (!e.target.matches("[data-fermata]")) return;
+    const scelta = f.fermata_comune.value === "" ? null : Number(f.fermata_comune.value);
+    scelteFermate(scelta);
+    disegna(leggiCorse());
+  });
+  f.addEventListener("focusout", e => {
+    if (!e.target.matches("[data-ora]")) return;
+    const v = e.target.value.trim();
+    if (!v) { e.target.removeAttribute("aria-invalid"); return; }
+    const n = normOra(v);
+    if (n) { e.target.value = n; e.target.removeAttribute("aria-invalid"); } else e.target.setAttribute("aria-invalid", "true");
+  });
+  f.addEventListener("click", e => {
+    const tg = e.target.closest("[data-togli-corsa]");
+    if (tg) { tg.closest("[data-corsa]").remove(); disegna(leggiCorse()); segnaSporco(); }
+  });
+  document.getElementById("aggiungi-corsa").addEventListener("click", () => {
+    disegna(leggiCorse().concat([{ orari: [], mezzo: "", nota: "" }]));
+    const righe = box.querySelectorAll("[data-corsa]");
+    righe[righe.length - 1].querySelector("[data-ora]").focus();
+    segnaSporco();
+  });
+  document.getElementById("incolla-aggiungi").addEventListener("click", () => {
+    const esito = document.getElementById("esito-incolla");
+    const n = Math.max(1, leggiFermate().length);
+    const { corse, scartate } = analizzaIncolla(document.getElementById("incolla-testo").value, n, document.getElementById("incolla-mezzo").value);
+    if (!corse.length) { esito.className = "esito-invio ko"; esito.textContent = "Non ho trovato orari: scrivili come 07:16, uno per riga."; return; }
+    const sostituisci = document.getElementById("incolla-sostituisci").checked;
+    const attuali = sostituisci ? [] : leggiCorse().filter(c => c.orari.some(Boolean));
+    disegna(attuali.concat(corse));
+    document.getElementById("incolla-testo").value = "";
+    segnaSporco();
+    esito.className = "esito-invio ok";
+    esito.textContent = `${sostituisci ? "Corse sostituite" : "Corse aggiunte"}: ${corse.length}.${scartate.length ? ` Righe senza orario ignorate: ${scartate.length}.` : ""} Controlla e premi Salva.`;
+  });
+
+  f.addEventListener("submit", async e => {
+    e.preventDefault();
+    const esito = document.getElementById("esito-orario");
+    const errore = m => { esito.className = "esito-invio ko"; esito.textContent = m; };
+    const nomi = leggiFermate();
+    if (!f.gruppo.value.trim() || !f.direzione.value.trim()) return errore("Scrivi il titolo del gruppo e la direzione.");
+    if (!nomi.length) return errore("Scrivi almeno il nome della prima fermata.");
+    const corse = [];
+    const righe = leggiCorse();
+    for (let k = 0; k < righe.length; k++) {
+      const c = righe[k];
+      if (c.orari.every(o => !o) && !c.nota) continue;
+      const orari = [];
+      for (const o of c.orari) {
+        if (!o) { orari.push(""); continue; }
+        const v = normOra(o);
+        if (!v) return errore(`Corsa ${k + 1}: «${o}» non è un orario valido. Scrivilo come 07:16.`);
+        orari.push(v);
+      }
+      if (orari.every(o => !o)) return errore(`Corsa ${k + 1}: manca l'orario.`);
+      while (orari.length > 1 && !orari[orari.length - 1]) orari.pop();
+      corse.push({ orari, mezzo: c.mezzo, nota: c.nota });
+    }
+    corse.sort((a, b) => primoOrario(a).localeCompare(primoOrario(b)) || (a.orari[0] || "").localeCompare(b.orari[0] || ""));
+    const url = conHttps(f.fonte_url.value);
+    if (url && !/^https:\/\//.test(url)) return errore("Il link alla fonte deve iniziare con https://");
+    if (f.valido_dal.value && f.valido_al.value && f.valido_al.value < f.valido_dal.value) return errore("La data «fino al» viene prima di «valido dal».");
+    const fc = f.fermata_comune.value === "" ? null : Number(f.fermata_comune.value);
+    const dati = {
+      gruppo: f.gruppo.value.trim(), sottotitolo: vuotoANull(f.sottotitolo.value),
+      direzione: f.direzione.value.trim(), percorso: vuotoANull(f.percorso.value),
+      giorni: f.giorni.value, fermate: nomi, fermata_comune: fc !== null && fc < nomi.length ? fc : null, corse,
+      legenda: vuotoANull(f.legenda.value), note: vuotoANull(f.note.value), periodo: vuotoANull(f.periodo.value),
+      valido_dal: f.valido_dal.value || null, valido_al: f.valido_al.value || null,
+      fonte_nome: vuotoANull(f.fonte_nome.value), fonte_url: url,
+      pubblicato: f.pubblicato.checked, ordine: Number(f.ordine.value) || 0
+    };
+    esito.className = "esito-invio"; esito.textContent = "Salvataggio…";
+    try {
+      if (nuovo) await inserisci("orari_trasporto", dati); else await aggiorna("orari_trasporto", `id=eq.${t.id}`, dati);
+      avvisa(`Orari salvati: ${corse.length} ${corse.length === 1 ? "corsa" : "corse"}`); vaiA("#/orari");
+    } catch (err) {
+      if (err instanceof SessioneScaduta) return schermataAccesso("La sessione è scaduta. Accedi di nuovo.");
+      errore(err.message);
+    }
+  });
+  const el = document.getElementById("elimina-orario");
+  if (el) el.addEventListener("click", async () => {
+    if (!confirm(`Eliminare la tabella «${t.direzione} · ${GIORNI_ORARI[t.giorni]}»?`)) return;
+    try { await elimina("orari_trasporto", `id=eq.${t.id}`); avvisa("Tabella eliminata"); vaiA("#/orari"); }
+    catch (err) {
+      if (err instanceof SessioneScaduta) return schermataAccesso("La sessione è scaduta. Accedi di nuovo.");
+      document.getElementById("esito-orario").className = "esito-invio ko"; document.getElementById("esito-orario").textContent = err.message;
+    }
+  });
+}
+
+/* =====================================================================
    ESPORTA (copia di sicurezza)
    ===================================================================== */
 const TABELLE = [
   ["categorie", "id"], ["etichette", "id"], ["attivita", "id"], ["consensi", "attivita_id"], ["annunci", "id"],
-  ["servizi_utili", "id"], ["segnalazioni", "creato_il"], ["statistiche", "giorno,ora,evento,attivita_id,sorgente,dettaglio"], ["impostazioni", "chiave"]
+  ["servizi_utili", "id"], ["orari_trasporto", "id"], ["segnalazioni", "creato_il"], ["statistiche", "giorno,ora,evento,attivita_id,sorgente,dettaglio"], ["impostazioni", "chiave"]
 ];
 async function tuttaLaTabella(nome, ordine) {
   let righeTot = [];
@@ -1602,7 +1874,10 @@ async function paginaEsporta() {
     b.setAttribute("aria-busy", "true"); esito.className = "esito-invio"; esito.textContent = "Preparo la copia…";
     try {
       const tabelle = {};
-      for (const [t, o] of TABELLE) tabelle[t] = await tuttaLaTabella(t, o);
+      for (const [t, o] of TABELLE) {
+        try { tabelle[t] = await tuttaLaTabella(t, o); }
+        catch (err) { if (t !== "orari_trasporto" || err instanceof SessioneScaduta) throw err; }
+      }
       const ora = new Date().toISOString();
       scarica(`territoria-copia-${oggiISO()}.json`, JSON.stringify({ progetto: "Territoria Sacrofano", versione: 1, esportato_il: ora, tabelle }, null, 1), "application/json");
       await salvaOSostituisci("impostazioni", "chiave", { chiave: "ultima_copia", valore: { quando: ora } });
@@ -1666,6 +1941,8 @@ const CONTROLLI = [
     prova: async () => bloccato(await daEstraneo("/rest/v1/annunci", Object.assign({ method: "POST" }, json({ tipo: "evento", titolo: "Controllo", testo: "Controllo di sicurezza", inizio: oggiISO(), scadenza: oggiISO(), pubblicato: false })))) },
   { nome: "Non può cancellare annunci",
     prova: async () => bloccato(await daEstraneo("/rest/v1/annunci?id=eq.00000000-0000-0000-0000-000000000000", { method: "DELETE" })) },
+  { nome: "Non può modificare gli orari degli autobus",
+    prova: async () => { const r = await daEstraneo("/rest/v1/orari_trasporto?id=eq.00000000-0000-0000-0000-000000000000", Object.assign({ method: "PATCH" }, json({ note: "Prova" }))); return bloccato(r) || r.stato === 404; } },
   { nome: "Non vede i consensi firmati",
     prova: async () => bloccato(await daEstraneo("/rest/v1/consensi?select=attivita_id&limit=1")) },
   { nome: "Non vede le segnalazioni né i contatti di chi le manda",
@@ -1755,6 +2032,7 @@ function paginaAltro() {
   <h1 class="titolo-pagina" tabindex="-1">Altro</h1>
   <ul class="menu-altro">
     <li><a href="#/servizi"><span>Servizi utili<small>Link a Comune, ASL, trasporti, emergenze</small></span><span aria-hidden="true">›</span></a></li>
+    <li><a href="#/orari"><span>Orari autobus e pulmini<small>Le corse mostrate in «Servizi utili»</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="#/categorie"><span>Categorie e caratteristiche<small>Come sono divise le attività</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="#/esporta"><span>Copia di sicurezza<small>Da scaricare una volta al mese</small></span><span aria-hidden="true">›</span></a></li>
     <li><a href="#/sicurezza"><span>Controllo di sicurezza<small>Prova che nessun estraneo possa modificare o leggere dati riservati</small></span><span aria-hidden="true">›</span></a></li>

@@ -260,3 +260,40 @@ h1:focus{outline:none}
 .titoletto{font-size:1.3rem;font-weight:750}
 .riquadro .passi{margin-top:8px}
 .modulo .nota{margin:0;font-size:.95rem;color:var(--muted)}
+
+/* ============ AUTOBUS E PULMINI ============ */
+.bus-box{margin-top:22px;padding:20px 20px 8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m)}
+.bus-capo{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bus-capo h2{font-size:1.45rem;font-weight:750}
+.bus-capo a{font-weight:700;text-decoration:none;white-space:nowrap}
+.bus-sotto{margin:4px 0 0;color:var(--muted);font-size:1rem}
+.bus-prossime{list-style:none;margin:10px 0 0;padding:0}
+.bus-prossime li{display:grid;gap:2px;padding:12px 0;border-top:1px solid var(--line)}
+.bus-verso{font-weight:700;color:var(--muted);font-size:.95rem}
+.bus-ora{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+.bus-ora b{font-family:var(--font-display);font-size:1.9rem;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.bus-poi{color:var(--muted);font-size:.98rem}
+.bus-vuoto{margin:12px 0 14px;font-weight:700}
+.tra{display:inline-block;padding:1px 9px;border-radius:999px;background:var(--accent-soft);color:var(--ink);font-size:.85rem;font-weight:700;white-space:nowrap}
+.mezzo{display:inline-block;padding:1px 9px;border-radius:6px;font-size:.84rem;font-weight:700;border:1.5px solid var(--line);white-space:nowrap}
+.mezzo.pulmino{border-color:var(--primary);color:var(--primary)}
+.mezzo.cotral{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.bus-gruppo h2{font-size:1.6rem;font-weight:750}
+.bus-gruppo > .bus-sotto{margin-top:4px}
+.bus-direzioni,.bus-giorni{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.bus-giorni .chip{display:inline-flex;align-items:center;text-decoration:none}
+.bus-giorni .chip[aria-current="true"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:700}
+.bus-direzione-unica{margin:12px 0 0;font-weight:700}
+.bus-percorso{margin:12px 0 0;font-weight:700;line-height:1.4}
+.bus-tabella{width:100%;border-collapse:collapse;margin-top:10px;font-variant-numeric:tabular-nums}
+.bus-tabella th{padding:8px 8px 8px 0;font-size:.85rem;font-weight:700;color:var(--muted);text-align:left;vertical-align:bottom;border-bottom:2px solid var(--line);line-height:1.25}
+.bus-tabella th:first-child,.bus-tabella td:first-child{padding-left:10px}
+.bus-tabella td{padding:10px 8px 10px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.bus-tabella td.principale b{font-size:1.2rem}
+.bus-tabella td.principale .tra{margin-left:8px}
+.bus-tabella tr.passata td{color:var(--muted);opacity:.55}
+.bus-tabella tr.prossima td{background:var(--accent-soft)}
+.bus-tabella tr.prossima td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+.bus-tabella tr.bus-nota-riga td{padding-top:0;font-size:.92rem;color:var(--muted);border-bottom:1px solid var(--line)}
+.bus-tabella tr:has(+ .bus-nota-riga) td{border-bottom:0}
+.bus-niente{margin-top:24px}

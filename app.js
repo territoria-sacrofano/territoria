@@ -15,6 +15,7 @@ let ETICHETTE = {};
 let ATTIVITA = [];
 let ANNUNCI = [];
 let SERVIZI = [];
+let ORARI = [];
 
 const GIORNI = ["lun", "mar", "mer", "gio", "ven", "sab", "dom"];
 const GIORNI_NOME = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
@@ -72,18 +73,21 @@ async function scrivi(tabella, dati, opzioni) {
 
 async function caricaDati() {
   const c = encodeURIComponent(COMUNE);
-  const [cat, eti, att, ann, ser] = await Promise.all([
+  const [cat, eti, att, ann, ser, ora] = await Promise.all([
     leggi("categorie?select=id,nome,icona,sottocategorie,ordine&order=ordine.asc,nome.asc"),
     leggi("etichette?select=id,nome,ordine&order=ordine.asc"),
     leggi("attivita?select=*&comune=eq." + c + "&order=nome.asc"),
     leggi("annunci?select=*&comune=eq." + c + "&order=fissato.desc,inizio.asc"),
-    leggi("servizi_utili?select=*&comune=eq." + c + "&order=ordine.asc,nome.asc")
+    leggi("servizi_utili?select=*&comune=eq." + c + "&order=ordine.asc,nome.asc"),
+    /* Se gli orari non sono ancora nel database, il resto del sito funziona lo stesso */
+    leggi("orari_trasporto?select=*&comune=eq." + c + "&order=ordine.asc,direzione.asc").catch(() => [])
   ]);
   CATEGORIE = cat;
   ETICHETTE = Object.fromEntries(eti.map(e => [e.id, e.nome]));
   ATTIVITA = att;
   ANNUNCI = ann;
   SERVIZI = ser;
+  ORARI = Array.isArray(ora) ? ora : [];
 }
 
 /* =====================================================================
@@ -304,7 +308,7 @@ function paginaHome() {
   <section class="sezione" aria-labelledby="h-cat">
     <h2 id="h-cat">Cosa ti serve?</h2>
     <ul class="categorie">${CATEGORIE.map(voceCategoria).join("")}</ul>
-    <p class="nota">Cerchi il Comune, la ASL, gli autobus o i numeri di emergenza? Sono in <a href="#/servizi">Servizi utili</a>.</p>
+    <p class="nota">Cerchi il Comune, la ASL, ${ORARI.length ? `gli <a href="#/orari">orari degli autobus</a>` : "gli autobus"} o i numeri di emergenza? Sono in <a href="#/servizi">Servizi utili</a>.</p>
   </section>
 
   ${inEvidenza.length ? `<section class="sezione" aria-labelledby="h-ev">
@@ -493,6 +497,16 @@ function paginaBacheca(q) {
   <p class="nota">Per le emergenze fanno fede solo i canali ufficiali: in caso di pericolo chiama il <a href="tel:112">112</a>.</p>`;
 }
 
+function voceServizio(v) {
+  const tel = /^tel:/.test(v.link);
+  const link = tel ? "tel:" + soloNumero(v.link.slice(4)) : urlSicuro(v.link);
+  if (!link) return "";
+  return `<li><a class="servizio ${v.urgente ? "urgente" : ""}" href="${esc(link)}" ${tel ? "" : `target="_blank" rel="noopener"`}>
+    <span><strong>${esc(v.nome)}</strong><span class="desc">${esc(v.descrizione || "")}</span></span>
+    <span class="dove">${tel ? "Chiama" : "Sito ufficiale ↗"}</span>
+  </a></li>`;
+}
+
 function paginaServizi() {
   const gruppi = [];
   SERVIZI.forEach(s => {
@@ -502,18 +516,196 @@ function paginaServizi() {
   });
   return `<h1 class="titolo-pagina" tabindex="-1">Servizi utili</h1>
   <p class="intro">Link diretti ai servizi pubblici che servono più spesso. Si aprono sui siti ufficiali: Territoria non li gestisce.</p>
+  ${boxAutobus()}
   ${gruppi.map((g, i) => `<section class="gruppo" aria-labelledby="g-${i}">
     <h2 id="g-${i}">${esc(g.nome)}</h2>
-    <ul class="servizi">${g.voci.map(v => {
-      const tel = /^tel:/.test(v.link);
-      const link = tel ? "tel:" + soloNumero(v.link.slice(4)) : urlSicuro(v.link);
-      if (!link) return "";
-      return `<li><a class="servizio ${v.urgente ? "urgente" : ""}" href="${esc(link)}" ${tel ? "" : `target="_blank" rel="noopener"`}>
-        <span><strong>${esc(v.nome)}</strong><span class="desc">${esc(v.descrizione || "")}</span></span>
-        <span class="dove">${tel ? "Chiama" : "Sito ufficiale ↗"}</span>
-      </a></li>`;
-    }).join("")}</ul>
+    <ul class="servizi">${g.voci.map(voceServizio).join("")}</ul>
   </section>`).join("")}`;
+}
+
+/* =====================================================================
+   AUTOBUS E PULMINI
+   Gli orari arrivano dalla tabella "orari_trasporto" e si cambiano dal
+   pannello. Il giorno (feriale, sabato, festivo) si capisce da solo.
+   ===================================================================== */
+const TIPI_GIORNO = [["feriali", "Lun–Ven"], ["sabato", "Sabato"], ["festivi", "Domenica e festivi"]];
+const NOMI_GIORNO = { feriali: "dal lunedì al venerdì", sabato: "il sabato", festivi: "la domenica e nei festivi", tutti: "tutti i giorni" };
+
+function pasqua(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const n = h + l - 7 * m + 114;
+  return new Date(Date.UTC(y, Math.floor(n / 31) - 1, (n % 31) + 1));
+}
+function festivoNazionale(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const md = iso.slice(5);
+  const fisse = ["01-01", "01-06", "04-25", "05-01", "06-02", "08-15", "11-01", "12-08", "12-25", "12-26"];
+  if (y >= 2026) fisse.push("10-04"); /* San Francesco, di nuovo festa nazionale dal 2026 */
+  if (Array.isArray(CFG.festeLocali)) fisse.push(...CFG.festeLocali); /* patrono e feste del paese, da config.js */
+  if (fisse.includes(md)) return true;
+  const pasquetta = pasqua(y); pasquetta.setUTCDate(pasquetta.getUTCDate() + 1);
+  return pasquetta.getUTCMonth() + 1 === m && pasquetta.getUTCDate() === d;
+}
+const tipoGiorno = (iso, g) => (g === 6 || festivoNazionale(iso)) ? "festivi" : g === 5 ? "sabato" : "feriali";
+const tabelleDel = tipo => ORARI.filter(t => t.giorni === tipo || t.giorni === "tutti");
+const corseDi = t => Array.isArray(t.corse) ? t.corse.filter(c => c && Array.isArray(c.orari)) : [];
+const fermateDi = t => Array.isArray(t.fermate) && t.fermate.length ? t.fermate : ["Ora"];
+const colonnaPrincipale = t => (Number.isInteger(t.fermata_comune) && t.fermata_comune < fermateDi(t).length) ? t.fermata_comune : 0;
+const oraValida = x => typeof x === "string" && /^\d{2}:\d{2}$/.test(x);
+const minutiDi = (c, col) => oraValida(c.orari[col]) ? toMin(c.orari[col]) : null;
+function traQuanto(min) {
+  if (min < 1) return "adesso";
+  if (min < 60) return `tra ${min} min`;
+  const h = Math.floor(min / 60), m = min % 60;
+  return min < 180 ? `tra ${h} h${m ? " " + m + " min" : ""}` : "";
+}
+const classeMezzo = m => /cotral/i.test(m || "") ? "cotral" : /pulmin|unit/i.test(m || "") ? "pulmino" : "altro";
+const badgeMezzo = m => m ? `<span class="mezzo ${classeMezzo(m)}">${esc(m)}</span>` : "";
+
+/* Gruppi nell'ordine scelto dal pannello: { nome, sottotitolo, tabelle[] } */
+function gruppiDi(tabelle) {
+  const gruppi = [];
+  tabelle.forEach(t => {
+    let g = gruppi.find(x => x.nome === t.gruppo);
+    if (!g) { g = { nome: t.gruppo, sottotitolo: t.sottotitolo, tabelle: [] }; gruppi.push(g); }
+    g.tabelle.push(t);
+  });
+  return gruppi;
+}
+
+/* Le prossime corse da Sacrofano, per ogni direzione che parte da qui */
+function htmlProssime() {
+  const ora = adessoRoma(), tipo = tipoGiorno(ora.data, ora.g);
+  const tabelle = tabelleDel(tipo).filter(t => Number.isInteger(t.fermata_comune));
+  if (!tabelle.length) {
+    return tipo === "festivi" && tabelleDel("feriali").length
+      ? `<p class="bus-vuoto">Oggi è festivo: non ci sono corse in programma.</p>`
+      : `<p class="bus-vuoto">Oggi non ci sono corse in programma.</p>`;
+  }
+  const righe = tabelle.map(t => {
+    const col = t.fermata_comune;
+    const dopo = corseDi(t).map(c => ({ c, min: minutiDi(c, col) })).filter(x => x.min !== null && x.min >= ora.min)
+      .sort((a, b) => a.min - b.min).slice(0, 2);
+    const prima = dopo[0];
+    return `<li>
+      <span class="bus-verso">${esc(t.direzione)}</span>
+      ${prima ? `<span class="bus-ora"><b>${esc(fmtOra(prima.c.orari[col]))}</b>${badgeMezzo(prima.c.mezzo)}<span class="tra">${esc(traQuanto(prima.min - ora.min))}</span></span>
+        ${dopo[1] ? `<span class="bus-poi">poi ${esc(fmtOra(dopo[1].c.orari[col]))}${dopo[1].c.mezzo ? " · " + esc(dopo[1].c.mezzo) : ""}</span>` : `<span class="bus-poi">ultima corsa di oggi</span>`}`
+      : `<span class="bus-poi">Per oggi le corse sono finite</span>`}
+    </li>`;
+  }).join("");
+  return `<ul class="bus-prossime">${righe}</ul>`;
+}
+
+function boxAutobus() {
+  if (!ORARI.length) return "";
+  return `<section class="bus-box" aria-labelledby="h-bus">
+    <div class="bus-capo"><h2 id="h-bus">Autobus e pulmini</h2><a href="#/orari">Tutti gli orari ›</a></div>
+    <p class="bus-sotto">Prossime partenze da Sacrofano</p>
+    <div data-bus-prossime>${htmlProssime()}</div>
+  </section>`;
+}
+
+function righeTabella(t, oggiAttivo, adesso) {
+  const fermate = fermateDi(t), col = colonnaPrincipale(t);
+  const corse = corseDi(t);
+  const mezzi = [...new Set(corse.map(c => c.mezzo || ""))];
+  const conMezzo = mezzi.length > 1 || (mezzi[0] && fermate.length === 1);
+  const testa = `<thead><tr>${fermate.map((f, i) => `<th scope="col"${i === col ? ' class="principale"' : ""}>${esc(f)}</th>`).join("")}${conMezzo ? `<th scope="col">Mezzo</th>` : ""}</tr></thead>`;
+  let prossimaTrovata = false;
+  const corpo = corse.map(c => {
+    const min = minutiDi(c, col);
+    let classe = "";
+    if (oggiAttivo && min !== null) {
+      if (min < adesso) classe = "passata";
+      else if (!prossimaTrovata) { classe = "prossima"; prossimaTrovata = true; }
+    }
+    const celle = fermate.map((_, i) => {
+      const o = c.orari[i];
+      const testo = oraValida(o) ? esc(fmtOra(o)) : "–";
+      return i === col
+        ? `<td class="principale"><b>${testo}</b>${classe === "prossima" ? ` <span class="tra" data-tra>${esc(traQuanto(min - adesso))}</span>` : ""}</td>`
+        : `<td>${testo}</td>`;
+    }).join("");
+    const nota = c.nota ? `<tr class="bus-nota-riga${classe ? " " + classe : ""}"><td colspan="${fermate.length + (conMezzo ? 1 : 0)}">${esc(c.nota)}</td></tr>` : "";
+    return `<tr class="${classe}"${min !== null ? ` data-min="${min}"` : ""}>${celle}${conMezzo ? `<td>${badgeMezzo(c.mezzo)}</td>` : ""}</tr>${nota}`;
+  }).join("");
+  return `<table class="bus-tabella"${oggiAttivo ? " data-bus-oggi" : ""}>${testa}<tbody>${corpo}</tbody></table>`;
+}
+
+function paginaOrari(q) {
+  const ora = adessoRoma(), oggi = tipoGiorno(ora.data, ora.g);
+  const scelto = TIPI_GIORNO.some(x => x[0] === q.get("giorno")) ? q.get("giorno") : oggi;
+  const oggiAttivo = scelto === oggi;
+  if (!ORARI.length) {
+    return `<h1 class="titolo-pagina" tabindex="-1">Autobus e pulmini</h1>
+    <p class="intro">Gli orari non sono ancora disponibili.</p>`;
+  }
+  const periodi = [...new Set(ORARI.map(t => t.periodo).filter(Boolean))];
+  const trasporti = SERVIZI.filter(v => /trasport/i.test(v.gruppo || ""));
+  const chip = ([v, nome]) => `<a class="chip" href="#/orari?giorno=${v}"${v === scelto ? ' aria-current="true"' : ""}>${esc(nome)}${v === oggi ? " · oggi" : ""}</a>`;
+  const gruppi = gruppiDi(tabelleDel(scelto));
+  const corpo = gruppi.length ? gruppi.map((g, gi) => {
+    const pulsanti = g.tabelle.length > 1
+      ? `<div class="bus-direzioni" role="group" aria-label="Direzione">${g.tabelle.map((t, ti) => `<button type="button" class="chip" data-bus-dir="${gi}-${ti}" aria-pressed="${ti === 0}">${esc(t.direzione)}</button>`).join("")}</div>`
+      : "";
+    const pannelli = g.tabelle.map((t, ti) => {
+      const scaduto = t.valido_al && t.valido_al < ora.data;
+      const futuro = t.valido_dal && t.valido_dal > ora.data;
+      return `<div class="bus-pannello" data-bus-pannello="${gi}-${ti}"${ti === 0 ? "" : " hidden"}>
+        ${g.tabelle.length > 1 ? "" : `<p class="bus-direzione-unica">${esc(t.direzione)}</p>`}
+        ${t.percorso ? `<p class="bus-percorso">${esc(t.percorso)}</p>` : ""}
+        ${scaduto ? `<p class="chiusura">Questo orario valeva fino al ${esc(dataLunga(t.valido_al))}: potrebbe essere cambiato.</p>` : ""}
+        ${futuro ? `<p class="chiusura">Questo orario entra in vigore il ${esc(dataLunga(t.valido_dal))}.</p>` : ""}
+        ${corseDi(t).length ? righeTabella(t, oggiAttivo, ora.min) : `<p class="nota">Nessuna corsa in questa direzione.</p>`}
+        ${t.legenda ? `<p class="nota">${esc(t.legenda)}</p>` : ""}
+        ${t.note ? `<p class="nota">${esc(t.note)}</p>` : ""}
+        ${t.fonte_nome ? `<p class="nota">Fonte: ${urlSicuro(t.fonte_url) ? `<a href="${esc(t.fonte_url)}" target="_blank" rel="noopener">${esc(t.fonte_nome)}</a>` : esc(t.fonte_nome)}.${t.aggiornato_il ? ` Aggiornato su Territoria il ${esc(dataLunga(giornoRoma(t.aggiornato_il)))}.` : ""}</p>` : ""}
+      </div>`;
+    }).join("");
+    return `<section class="sezione bus-gruppo" aria-labelledby="bus-g-${gi}">
+      <h2 id="bus-g-${gi}">${esc(g.nome)}</h2>
+      ${g.sottotitolo ? `<p class="bus-sotto">${esc(g.sottotitolo)}</p>` : ""}
+      ${pulsanti}${pannelli}
+    </section>`;
+  }).join("")
+  : `<div class="riquadro bus-niente"><p><strong>${scelto === "festivi" ? "La domenica e nei giorni festivi non ci sono corse." : "Per questo giorno non ci sono corse in programma."}</strong></p></div>`;
+
+  return `<h1 class="titolo-pagina" tabindex="-1">Autobus e pulmini</h1>
+  <p class="intro">Le corse ${esc(NOMI_GIORNO[scelto])}${oggiAttivo ? ". In grigio quelle già passate, evidenziata la prossima" : ""}.${periodi.length ? " " + esc(periodi.join(" · ")) + "." : ""}</p>
+  <div class="bus-giorni" role="group" aria-label="Giorno">${TIPI_GIORNO.map(chip).join("")}</div>
+  ${corpo}
+  <section class="sezione" aria-labelledby="h-bus-info">
+    <h2 id="h-bus-info">Variazioni e informazioni</h2>
+    <p class="intro">Gli orari cambiano spesso, anche per scioperi o lavori: come raccomanda il Comune, prima di partire controlla i siti di Astral e COTRAL.</p>
+    ${trasporti.length ? `<ul class="servizi">${trasporti.map(voceServizio).join("")}</ul>` : ""}
+    <p class="nota">Hai visto un orario sbagliato? <a href="#/info?tipo=altro&sez=segnala">Segnalacelo</a>.</p>
+  </section>`;
+}
+
+/* Ogni minuto: aggiorna "prossima corsa" senza ridisegnare la pagina */
+function aggiornaBus() {
+  const ora = adessoRoma();
+  const box = document.querySelector("[data-bus-prossime]");
+  if (box) box.innerHTML = htmlProssime();
+  document.querySelectorAll("[data-bus-oggi] tbody").forEach(tb => {
+    let trovata = false;
+    tb.querySelectorAll("tr[data-min]").forEach(tr => {
+      const min = Number(tr.dataset.min);
+      const passata = min < ora.min, prossima = !passata && !trovata;
+      if (prossima) trovata = true;
+      const nota = tr.nextElementSibling && tr.nextElementSibling.classList.contains("bus-nota-riga") ? tr.nextElementSibling : null;
+      [tr, nota].forEach(x => { if (x) { x.classList.toggle("passata", passata); x.classList.toggle("prossima", prossima); } });
+      const cella = tr.querySelector("td.principale");
+      let tra = cella.querySelector("[data-tra]");
+      if (prossima) {
+        if (!tra) { tra = document.createElement("span"); tra.className = "tra"; tra.setAttribute("data-tra", ""); cella.append(" ", tra); }
+        tra.textContent = traQuanto(min - ora.min);
+      } else if (tra) tra.remove();
+    });
+  });
 }
 
 const TIPI_SEGNALAZIONE = [
@@ -694,7 +886,7 @@ function paginaDaConfigurare() {
    NAVIGAZIONE
    ===================================================================== */
 const TITOLI = { "": "Sacrofano", attivita: "Attività", bacheca: "Bacheca", servizi: "Servizi utili", info: "Info" };
-const TITOLI_PAGINE = { privacy: "Privacy e note legali" };
+const TITOLI_PAGINE = { privacy: "Privacy e note legali", orari: "Orari autobus e pulmini" };
 let pronto = false;
 
 function leggiHash() {
@@ -715,6 +907,7 @@ function mostra(primo) {
   else if (r === "servizi") html = paginaServizi();
   else if (r === "info") html = paginaInfo(q);
   else if (r === "privacy") { html = paginaPrivacy(); sezione = "info"; }
+  else if (r === "orari") { html = paginaOrari(q); sezione = "servizi"; }
   else html = pagina404();
   main.innerHTML = html;
   document.querySelectorAll("[data-nav]").forEach(a => {
@@ -726,6 +919,7 @@ function mostra(primo) {
   }
   const scheda = r === "a" ? ATTIVITA.find(x => x.id === p[1]) : null;
   if (scheda) conta("scheda", { attivita_id: scheda.id });
+  if (r === "orari" && !q.get("giorno")) conta("orari");
   document.title = (scheda ? scheda.nome : (TITOLI_PAGINE[r] || TITOLI[sezione] || "Sacrofano")) + " | Territoria";
   const sez = q.get("sez");
   if (sez && document.getElementById(sez)) document.getElementById(sez).scrollIntoView();
@@ -780,6 +974,11 @@ main.addEventListener("click", async e => {
     document.getElementById("lista-bacheca").innerHTML = listaAvvisi(prossimi(filtroBacheca));
     document.querySelectorAll("[data-tipo]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.tipo === filtroBacheca)));
     try { history.replaceState(null, "", location.pathname + "#/bacheca" + (filtroBacheca ? "?tipo=" + filtroBacheca : "")); } catch (err) { /* niente */ }
+  }
+  else if (b.hasAttribute("data-bus-dir")) {
+    const [g] = b.dataset.busDir.split("-");
+    document.querySelectorAll(`[data-bus-dir^="${g}-"]`).forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    document.querySelectorAll(`[data-bus-pannello^="${g}-"]`).forEach(x => { x.hidden = x.dataset.busPannello !== b.dataset.busDir; });
   }
   else if (b.hasAttribute("data-esempio")) { avvisa("Scheda di esempio: contatti non attivi"); }
   else if (b.hasAttribute("data-condividi")) {
@@ -861,5 +1060,5 @@ async function avvia() {
 
 registraVisita();
 avvia();
-setInterval(() => { if (pronto) aggiornaStati(); }, 60000);
+setInterval(() => { if (pronto) { aggiornaStati(); aggiornaBus(); } }, 60000);
 })();
