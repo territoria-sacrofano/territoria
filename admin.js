@@ -736,6 +736,10 @@ function leggiOrari(radice) {
   return { orari, errore };
 }
 
+/* Le caselle della Parte B del modulo cartaceo */
+const VOCI_CONSENSO = [["pubblicazione", "Pubblicazione della scheda", "Necessaria per pubblicare"], ["nome_titolare", "Nome del titolare", ""], ["foto", "Foto", ""], ["persone_foto", "Persone nelle foto", ""], ["social", "Uso sui social di Territoria", ""], ["resoconto", "Resoconto mensile", "Vuole ricevere i numeri della scheda"], ["comunicazioni", "Comunicazioni", "Novità del sito e iniziative"]];
+const CHIAVI_CONSENSO = VOCI_CONSENSO.map(v => v[0]);
+
 async function paginaModificaAttivita(id) {
   const nuova = id === "nuova";
   let a, consenso = null;
@@ -784,11 +788,23 @@ async function paginaModificaAttivita(id) {
           <option value="bozza"${a.stato === "bozza" ? " selected" : ""}>Bozza: la vedi solo tu</option>
           <option value="pubblicata"${a.stato === "pubblicata" ? " selected" : ""}>Pubblicata: visibile a tutti</option>
           <option value="nascosta"${a.stato === "nascosta" ? " selected" : ""}>Nascosta: tolta dal sito</option>
-        </select><small>Per pubblicare serve il consenso firmato, più sotto.</small></label>
+        </select><small>Per pubblicare serve il consenso firmato: lo compili subito qui sotto.</small></label>
         <div class="spunte">
           <label class="spunta"><input type="checkbox" name="in_evidenza"${a.in_evidenza ? " checked" : ""}><span><b>In evidenza</b><small>Compare in grande nella pagina iniziale.</small></span></label>
           <label class="spunta"><input type="checkbox" name="esempio"${a.esempio ? " checked" : ""}><span><b>Scheda di prova</b><small>Inventata, per provare il sito: i contatti non funzionano.</small></span></label>
         </div>
+      </div>
+    </section>
+
+    <section class="gruppo-campi" aria-labelledby="g-consenso" id="consenso"><h2 id="g-consenso">Consenso firmato</h2>
+      <p class="nota">${nuova ? "Serve per pubblicare (non per le schede di prova)." : a.esempio ? "Le schede di prova non hanno bisogno di consenso." : consenso ? (consenso.revocato_il ? `Revocato il ${dataLunga(consenso.revocato_il)}.` : `Firmato il ${dataLunga(consenso.data_firma)}.`) : "Non ancora registrato: la scheda non si può pubblicare."} Copia qui le caselle del modulo cartaceo: si salva insieme alla scheda.</p>
+      <div class="campi">
+        <label class="campo"><span>Data della firma</span><input type="date" name="c_data_firma" value="${esc(consenso?.data_firma || "")}"></label>
+        <div class="spunte">
+          ${VOCI_CONSENSO.map(([k, t, sotto]) => `<label class="spunta"><input type="checkbox" name="c_${k}"${consenso && consenso[k] ? " checked" : ""}><span><b>${t}</b>${sotto ? `<small>${sotto}</small>` : ""}</span></label>`).join("")}
+        </div>
+        ${nuova ? "" : `<label class="campo"><span>Revocato il</span><small>Solo se l'attività ha ritirato il consenso: la scheda si nasconde da sola.</small><input type="date" name="c_revocato_il" value="${esc(consenso?.revocato_il || "")}"></label>`}
+        <label class="campo"><span>Note sul consenso</span><textarea name="c_note" rows="2" maxlength="500">${esc(consenso?.note || "")}</textarea></label>
       </div>
     </section>
 
@@ -840,7 +856,9 @@ async function paginaModificaAttivita(id) {
       </div>
     </section>
 
-    ${nuova ? "" : `<section class="gruppo-campi" aria-labelledby="g-foto"><h2 id="g-foto">Foto</h2>
+    ${nuova ? `<section class="gruppo-campi" aria-labelledby="g-foto"><h2 id="g-foto">Foto</h2>
+      <p class="nota">Le foto si aggiungono subito dopo aver premuto «Crea la scheda»: il pannello ti porta direttamente qui.</p>
+    </section>` : `<section class="gruppo-campi" aria-labelledby="g-foto"><h2 id="g-foto">Foto</h2>
       <p class="nota">Le foto vengono rimpicciolite in automatico prima del caricamento. Per pubblicarle serve il consenso alle foto.</p>
       <div class="foto-griglia" id="foto"></div>
       <label class="bottone carica-foto"><input type="file" id="nuove-foto" accept="image/*" multiple>+ Aggiungi foto</label>
@@ -854,23 +872,7 @@ async function paginaModificaAttivita(id) {
     </div>
   </form>
 
-  ${nuova ? "" : `<section class="gruppo-campi modifica" aria-labelledby="g-consenso" id="consenso">
-    <h2 id="g-consenso">Consenso firmato</h2>
-    <p class="nota">${a.esempio ? "Le schede di prova non hanno bisogno di consenso." : consenso ? (consenso.revocato_il ? `Revocato il ${dataLunga(consenso.revocato_il)}.` : `Firmato il ${dataLunga(consenso.data_firma)}.`) : "Non ancora registrato: la scheda non si può pubblicare."} Copia qui le caselle del modulo cartaceo.</p>
-    <form id="f-consenso" class="campi" novalidate>
-      <label class="campo"><span>Data della firma</span><input type="date" name="data_firma" value="${esc(consenso?.data_firma || "")}" required></label>
-      <div class="spunte">
-        ${[["pubblicazione", "Pubblicazione della scheda", "Necessaria per pubblicare"], ["nome_titolare", "Nome del titolare", ""], ["foto", "Foto", ""], ["persone_foto", "Persone nelle foto", ""], ["social", "Uso sui social di Territoria", ""], ["resoconto", "Resoconto mensile", "Vuole ricevere i numeri della scheda"], ["comunicazioni", "Comunicazioni", "Novità del sito e iniziative"]]
-          .map(([k, t, s]) => `<label class="spunta"><input type="checkbox" name="${k}"${consenso && consenso[k] ? " checked" : ""}><span><b>${t}</b>${s ? `<small>${s}</small>` : ""}</span></label>`).join("")}
-      </div>
-      <label class="campo"><span>Revocato il</span><small>Solo se l'attività ha ritirato il consenso: la scheda si nasconde da sola.</small><input type="date" name="revocato_il" value="${esc(consenso?.revocato_il || "")}"></label>
-      <label class="campo"><span>Note</span><textarea name="note" rows="2" maxlength="500">${esc(consenso?.note || "")}</textarea></label>
-      <div><button type="submit" class="primario">Salva il consenso</button></div>
-      <p class="esito-invio" id="esito-consenso" role="status" aria-live="polite"></p>
-    </form>
-  </section>
-
-  <section class="gruppo-campi modifica" aria-labelledby="g-elimina">
+  ${nuova ? "" : `<section class="gruppo-campi modifica" aria-labelledby="g-elimina">
     <h2 id="g-elimina">Eliminare la scheda</h2>
     <p class="nota">Per toglierla dal sito di solito basta lo stato "Nascosta". Eliminare cancella per sempre scheda, consenso registrato e foto.</p>
     <button type="button" class="bottone pericolo" id="elimina-att">Elimina definitivamente</button>
@@ -1016,59 +1018,91 @@ async function paginaModificaAttivita(id) {
       riconoscimenti: righe(f.riconoscimenti.value),
       galleria: galleria.map(g => ({ percorso: g.percorso, url: g.url, alt: (g.alt || "").trim(), w: g.w, h: g.h, persone: !!g.persone, copertina: !!g.copertina })).map(g => { Object.keys(g).forEach(k => g[k] === undefined && delete g[k]); return g; })
     };
+    /* ---- Consenso: si salva insieme alla scheda ---- */
+    const c = {
+      data_firma: f.c_data_firma.value || null,
+      revocato_il: f.c_revocato_il ? (f.c_revocato_il.value || null) : (consenso?.revocato_il || null),
+      note: vuotoANull(f.c_note.value)
+    };
+    CHIAVI_CONSENSO.forEach(k => { c[k] = f["c_" + k].checked; });
+    const toccato = !!(c.data_firma || c.note || CHIAVI_CONSENSO.some(k => c[k]));
+    if (toccato && !c.data_firma) return errore("Consenso firmato: scrivi la data della firma del modulo.");
+    if (consenso && !c.data_firma) return errore("Consenso firmato: la data della firma non si può cancellare.");
+    const cambiato = consenso
+      ? ["data_firma", "revocato_il", "note"].some(k => (c[k] || null) !== (consenso[k] || null)) || CHIAVI_CONSENSO.some(k => c[k] !== !!consenso[k])
+      : toccato;
+    const esempio = f.esempio.checked;
+    const validoPrima = !!(consenso && consenso.pubblicazione && !consenso.revocato_il);
+    const validoDopo = !!(c.data_firma && c.pubblicazione && !c.revocato_il);
+    let statoVoluto = dati.stato, avviso = "";
+    if (statoVoluto === "pubblicata" && !esempio && !validoDopo) {
+      if (cambiato && validoPrima) { statoVoluto = "nascosta"; avviso = " Il consenso è stato ritirato: la scheda non è più visibile sul sito."; }
+      else return errore("Per pubblicare serve il consenso firmato: compila «Consenso firmato» (data della firma e casella «Pubblicazione della scheda») oppure scegli «Bozza».");
+    }
+    if (c.data_firma && !esempio && !c.nome_titolare && dati.titolare) return errore("Il nome del titolare si può tenere solo con il consenso al nome: spunta «Nome del titolare» oppure svuota il campo «Titolare».");
+    /* Foto senza consenso: si tolgono dalla scheda, come fa il database */
+    let cancellaArchivio = false;
+    if (cambiato && c.data_firma && !esempio) {
+      if (!c.foto && dati.galleria.length) {
+        cancellaArchivio = confirm("Senza consenso alle foto, le foto vengono tolte dalla scheda. Vuoi cancellarle anche dall'archivio?");
+        dati.galleria = [];
+        avviso += " Foto tolte dalla scheda.";
+      } else if (!c.persone_foto && dati.galleria.some(g => g.persone)) {
+        dati.galleria = dati.galleria.filter(g => !g.persone);
+        avviso += " Tolte le foto con persone riconoscibili.";
+      }
+    }
+    dati.stato = statoVoluto;
+
     b.setAttribute("aria-busy", "true");
     esito.className = "esito-invio"; esito.textContent = "Salvataggio…";
+    let passo = "scheda";
     try {
       if (nuova) {
-        await inserisci("attivita", Object.assign({ id: nuovoId }, dati));
-        avvisa("Scheda creata. Ora puoi aggiungere foto e consenso.");
+        /* Ordine obbligato: scheda (in bozza) → consenso → pubblicazione */
+        const pubblicaDopo = statoVoluto === "pubblicata" && !esempio;
+        await inserisci("attivita", Object.assign({ id: nuovoId }, dati, { stato: pubblicaDopo ? "bozza" : statoVoluto }));
+        passo = "consenso";
+        if (cambiato) await salvaOSostituisci("consensi", "attivita_id", Object.assign({ attivita_id: nuovoId }, c));
+        passo = "pubblicazione";
+        if (pubblicaDopo) await aggiorna("attivita", `id=eq.${encodeURIComponent(nuovoId)}`, { stato: "pubblicata" });
+        avvisa(statoVoluto === "pubblicata" ? "Scheda creata e pubblicata. Ora puoi aggiungere le foto." : "Scheda creata. Ora puoi aggiungere le foto.");
         vaiA("#/attivita/" + encodeURIComponent(nuovoId));
         return;
       }
+      /* Scheda esistente: prima il consenso, così la scheda si salva già con le regole nuove */
+      passo = "consenso";
+      if (cambiato) {
+        await salvaOSostituisci("consensi", "attivita_id", Object.assign({ attivita_id: a.id }, c));
+        consenso = Object.assign({ attivita_id: a.id }, c);
+      }
+      passo = "scheda";
       await aggiorna("attivita", `id=eq.${encodeURIComponent(a.id)}`, dati);
       sporco = false;
+      if (cancellaArchivio) {
+        try { const file = await elencaFile(a.id); await cancellaFile((file || []).map(x => `${a.id}/${x.name}`)); avviso += " Foto cancellate dall'archivio."; }
+        catch (err) { avvisa(err.message); }
+      }
       if (daCancellare.length) {
         try { await cancellaFile(daCancellare.splice(0)); } catch (err) { avvisa(err.message); }
       }
-      avvisa("Modifiche salvate");
+      avvisa((cambiato ? "Scheda e consenso salvati." : "Modifiche salvate.") + avviso);
       vaiA("#/attivita/" + encodeURIComponent(a.id));
     } catch (err) {
       if (err instanceof SessioneScaduta) return schermataAccesso("La sessione è scaduta. Accedi di nuovo.");
-      errore(err.message);
+      if (nuova && passo !== "scheda") {
+        /* La scheda esiste già (in bozza): la apro, così si vede cosa manca */
+        avvisa(`Scheda creata come bozza, ma ${passo === "consenso" ? "il consenso non è stato salvato" : "non è stata pubblicata"}: ${err.message}`);
+        vaiA("#/attivita/" + encodeURIComponent(nuovoId));
+        return;
+      }
+      errore(passo === "scheda" && cambiato && !nuova ? `Il consenso è stato salvato, la scheda no: ${err.message}` : err.message);
     } finally {
       b.removeAttribute("aria-busy");
     }
   });
 
   if (nuova) { f.nome.focus(); return; }
-
-  /* ---------- Consenso ---------- */
-  const fc = document.getElementById("f-consenso");
-  fc.addEventListener("submit", async e => {
-    e.preventDefault();
-    const esito = document.getElementById("esito-consenso");
-    if (!fc.data_firma.value) { esito.className = "esito-invio ko"; esito.textContent = "Scrivi la data della firma."; return; }
-    if (sporco && !confirm("Hai modifiche alla scheda non ancora salvate: andranno perse. Continuare?")) return;
-    const valori = { attivita_id: a.id, data_firma: fc.data_firma.value, revocato_il: vuotoANull(fc.revocato_il.value), note: vuotoANull(fc.note.value) };
-    ["pubblicazione", "nome_titolare", "foto", "persone_foto", "social", "resoconto", "comunicazioni"].forEach(k => { valori[k] = fc[k].checked; });
-    const avevaFoto = galleria.length > 0;
-    try {
-      await salvaOSostituisci("consensi", "attivita_id", valori);
-      sporco = false;
-      let msg = "Consenso salvato.";
-      if (!valori.foto && avevaFoto && confirm("Senza consenso alle foto, le foto sono state tolte dalla scheda. Vuoi cancellarle anche dall'archivio?")) {
-        const file = await elencaFile(a.id);
-        await cancellaFile((file || []).map(x => `${a.id}/${x.name}`));
-        msg += " Foto cancellate dall'archivio.";
-      }
-      if (valori.revocato_il || !valori.pubblicazione) msg += " La scheda non è più visibile sul sito.";
-      avvisa(msg);
-      vaiA("#/attivita/" + encodeURIComponent(a.id));
-    } catch (err) {
-      if (err instanceof SessioneScaduta) return schermataAccesso("La sessione è scaduta. Accedi di nuovo.");
-      esito.className = "esito-invio ko"; esito.textContent = err.message;
-    }
-  });
 
   /* ---------- Eliminazione ---------- */
   document.getElementById("elimina-att").addEventListener("click", async () => {
@@ -1581,7 +1615,7 @@ function normOra(v) {
 }
 const primoOrario = c => (c.orari || []).find(Boolean) || "";
 
-async function leggiOrari() {
+async function leggiTabelleOrari() {
   try { return await leggi("orari_trasporto?select=*&order=ordine.asc,direzione.asc,giorni.asc"); }
   catch (e) { if (e instanceof SessioneScaduta) throw e; return null; }
 }
@@ -1589,7 +1623,7 @@ const mancaAggiornamento3 = () => `<div class="errore-dati" role="alert"><h2>Man
   <p>In Supabase apri SQL Editor ed esegui lo script <b>territoria-aggiornamento-3.sql</b>, poi ricarica questa pagina.</p></div>`;
 
 async function paginaOrariAdmin() {
-  const lista = await leggiOrari();
+  const lista = await leggiTabelleOrari();
   const testa = `<a class="indietro-admin" href="#/altro">‹ Altro</a>
   <div class="capo"><h1 class="titolo-pagina" tabindex="-1">Orari autobus</h1>
     ${lista ? `<div class="capo-azioni"><a class="primario" href="#/orari/nuova">+ Nuova tabella</a></div>` : ""}</div>`;
@@ -1642,7 +1676,7 @@ function analizzaIncolla(testo, n, mezzoBase) {
 }
 
 async function paginaModificaOrario(id, q) {
-  const lista = await leggiOrari();
+  const lista = await leggiTabelleOrari();
   if (!lista) { app.innerHTML = `<a class="indietro-admin" href="#/orari">‹ Orari autobus</a>` + mancaAggiornamento3(); return; }
   const nuovo = id === "nuova";
   const copia = nuovo && q.get("copia") ? lista.find(x => x.id === q.get("copia")) : null;
